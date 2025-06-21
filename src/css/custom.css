@@ -23,15 +23,16 @@
 }
 
 /* 自動生成された cardContainer クラスに対応する */
-[class^="cardContainer_"] {
+a[class^="cardContainer_"] {
+  display: block;
   transition: all 0.3s ease-in-out;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
 }
 
-/* hover 効果 */
-[class^="cardContainer_"]:hover {
+a[class^="cardContainer_"]:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
   cursor: pointer;
 }
 
