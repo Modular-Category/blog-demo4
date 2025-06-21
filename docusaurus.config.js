@@ -62,7 +62,28 @@ const config = {
 export default config;
 
 module.exports = {
-  // ...
-  onBrokenLinks: 'warn',
+  title: 'QWorld Blog', // 任意のサイト名
+  url: 'https://Modular-Category.github.io', // GitHub Pages のルートURL
+  baseUrl: '/blog-demo4/', // リポジトリ名と一致させる
+  // 以下はそのままでOK
+  onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-}
+  favicon: 'img/favicon.ico',
+  i18n: {
+    defaultLocale: 'ja',
+    locales: ['ja', 'en'],
+  },
+  presets: [
+    [
+      'classic',
+      {
+        docs: {
+          sidebarPath: require.resolve('./sidebars.js'),
+        },
+        theme: {
+          customCss: require.resolve('./src/css/custom.css'),
+        },
+      },
+    ],
+  ],
+};
