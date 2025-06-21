@@ -47,3 +47,15 @@ a[class^="cardContainer_"]:hover {
   text-decoration: underline;
 }
 */
+
+.cardContainer_fWXF {
+  display: block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.cardContainer_fWXF:hover {
+  transform: scale(1.05) translateY(-6px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background-color: var(--ifm-background-color);
+}
