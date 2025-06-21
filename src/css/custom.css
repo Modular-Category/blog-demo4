@@ -25,14 +25,14 @@
 /* 自動生成された cardContainer クラスに対応する */
 a[class^="cardContainer_"] {
   display: block;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
 }
 
 a[class^="cardContainer_"]:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-12px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
   cursor: pointer;
 }
 
