@@ -1,18 +1,23 @@
-/* src/css/custom.css */
-
-/* カードのスタイル（ドキュメント内の作例などで再利用可能） */
 .card-style {
     background-color: var(--ifm-card-background-color);
     border-radius: var(--ifm-card-border-radius);
-    /* よりリッチな影を追加 */
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-    transition: all 0.3s ease-in-out;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    
+    /* highlight-start */
+    /* アニメーションを0.3秒かけて滑らかに行う設定 */
+    transition: all 0.3s ease-in-out;
+    /* highlight-end */
 }
 
-/* カードのホバーエフェクト */
+/* カードにカーソルが乗った時のスタイル */
 .card-style:hover {
+    /* 影をより濃く、大きくして立体感を出す */
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    
+    /* highlight-start */
+    /* Y軸（垂直方向）に-5px移動させ、少し浮き上がったように見せる */
     transform: translateY(-5px);
+    /* highlight-end */
 }
