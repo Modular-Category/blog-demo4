@@ -22,16 +22,19 @@
     /* highlight-end */
 }
 
-.theme-doc-card {
+/* 自動生成された cardContainer クラスに対応する */
+[class^="cardContainer_"] {
   transition: all 0.3s ease-in-out;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.theme-doc-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+/* hover 効果 */
+[class^="cardContainer_"]:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
   cursor: pointer;
 }
+
 .breadcrumbs__link {
   transition: all 0.3s ease;
   color: var(--ifm-link-color);
