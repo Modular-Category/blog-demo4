@@ -23,11 +23,20 @@
 }
 
 .theme-doc-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 .theme-doc-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  border-color: var(--ifm-color-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+.breadcrumbs__link {
+  transition: all 0.3s ease;
+  color: var(--ifm-link-color);
+}
+
+.breadcrumbs__link:hover {
+  color: var(--ifm-link-hover-color);
+  text-decoration: underline;
 }
