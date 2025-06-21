@@ -11,13 +11,13 @@ QWorldの図式は、いくつかの基本的な要素（素子）を組み合�
 ### `\qbox`: ボックス
 
 `\qbox` は、射やプロセスを表す基本的な「箱」を描画します。
+</div>
 
 ```latex
 \q{ \qbox }
 ```
 
 ![`\qbox`の図](https://placehold.co/100x100/F3F4F6/333333?text=Box)
-</div>
 
 ### `\qwire`: ワイヤー
 
