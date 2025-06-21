@@ -1,5 +1,75 @@
-/* src/pages/index.module.css */
+/**
+ * CSS files with the .module.css suffix are treated as CSS modules.
+ * All class names in this file will be scoped to the component they are imported into.
+ */
+
 .heroBanner {
-  padding: 4rem;
+  padding: 4rem 0;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  background-color: #f8fafc; /* ライトモードの背景色 */
+  color: #1e293b; /* ライトモードのテキスト色 */
+}
+
+/* ダークモード用のスタイル */
+[data-theme='dark'] .heroBanner {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+[data-theme='dark'] .features {
+    background-color: #0f172a;
+}
+
+.featureIcon {
+    font-size: 3rem;
+    color: var(--ifm-color-primary);
+    margin-bottom: 1rem;
+}
+
+.gallerySection {
+    padding: 4rem 0;
+    background-color: #f8fafc;
+}
+
+[data-theme='dark'] .gallerySection {
+    background-color: #1e293b;
+}
+
+.galleryItem {
+    padding: 1rem;
+}
+
+.galleryItem img {
+    border-radius: 0.75rem;
+    box-shadow: var(--ifm-global-shadow-lg);
+    transition: transform 0.3s ease-in-out;
+}
+
+.galleryItem img:hover {
+    transform: scale(1.05);
+}
+
+.galleryItem p {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--ifm-color-content-secondary);
 }
