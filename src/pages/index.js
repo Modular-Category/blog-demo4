@@ -6,6 +6,9 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 /* import styles from './index.module.css';*/
 import styles from './index.module.css';
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCode, faPencilRuler, faSitemap } from '@fortawesome/free-solid-svg-icons';
+
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
@@ -28,8 +31,7 @@ function HomepageHeader() {
 const FeatureList = [
   {
     title: 'シンプルな構文',
-    // ヒーローイメージ用のSVGや画像へのパスをここに指定
-    Image: 'img/undraw_docusaurus_mountain.svg', 
+    Icon: faCode, 
     description: (
       <>
         <code>\qbox</code> や <code>\qbraid</code> のような直感的なコマンドで、見たままの図式を構成できます。コードの可読性が高く、複雑な図でも管理が容易です。
@@ -38,7 +40,7 @@ const FeatureList = [
   },
   {
     title: '高いカスタマイズ性',
-    Image: 'img/undraw_docusaurus_tree.svg',
+    Icon: faPencilRuler,
     description: (
       <>
         パワフルなTikZが基盤。色、サイズ、線のスタイルなど、あらゆる要素を細かく調整可能です。あなたの論文やスライドに最適な、一貫性のある美しい図を作成できます。
@@ -56,11 +58,11 @@ const FeatureList = [
   },
 ];
 
-function Feature({Image, title, description}) {
+function Feature({Icon, title, description}) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        {/* <img className={styles.featureSvg} alt={title} src={useBaseUrl(Image)}/> */}
+        <FontAwesomeIcon icon={Icon} className={styles.featureIcon} />
       </div>
       <div className="text--center padding-horiz--md">
         <h3>{title}</h3>
