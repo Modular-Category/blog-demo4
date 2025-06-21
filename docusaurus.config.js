@@ -11,7 +11,7 @@ const config = {
   title: 'QWorld',
   tagline: 'モノイダル圏のための直感的なLaTeX図式計算パッケージ',
   // highlight-start
-  url: 'https://<YOUR_GITHUB_USERNAME>.github.io', // ★ あなたのGitHubユーザー名に置き換える
+  url: 'https://Modular-Category.github.io', // ★ あなたのGitHubユーザー名に置き換える
   baseUrl: '/qworld-docs/', // ★ あなたのリポジトリ名に置き換える
   // highlight-end
   onBrokenLinks: 'throw',
@@ -20,7 +20,7 @@ const config = {
 
   // GitHub pages deployment config.
   // highlight-start
-  organizationName: '<YOUR_GITHUB_USERNAME>', // ★ あなたのGitHubユーザー名
+  organizationName: 'Modular-Category', // ★ あなたのGitHubユーザー名
   projectName: 'qworld-docs', // ★ あなたのリポジトリ名
   // highlight-end
 
@@ -38,12 +38,12 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
-            'https://github.com/<YOUR_GITHUB_USERNAME>/qworld-docs/tree/main/',
+            'https://github.com/Modular-Category/blog-demo4/tree/main/',
         },
         blog: {
           showReadingTime: true,
           editUrl:
-            'https://github.com/<YOUR_GITHUB_USERNAME>/qworld-docs/tree/main/',
+            'https://github.com/Modular-Category/blog-demo4/tree/main/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
