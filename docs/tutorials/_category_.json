@@ -1,0 +1,8 @@
+{
+  "label": "チュートリアル",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "QWorldの基本的なコマンドの使い方を、ステップ・バイ・ステップで学びます。"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@types/node": "^24.0.3"
+  },
+  "dependencies": {
+    "@docusaurus/preset-classic": "^3.8.1",
+    "@docusaurus/types": "^3.8.1",
+    "prism-react-renderer": "^2.4.1"
+  }
+}
