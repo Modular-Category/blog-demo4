@@ -1,28 +1,21 @@
+/*
 .card-style {
     background-color: var(--ifm-card-background-color);
     border-radius: var(--ifm-card-border-radius);
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
-    
-    /* highlight-start */
-    /* アニメーションを0.3秒かけて滑らかに行う設定 */
     transition: all 0.3s ease-in-out;
-    /* highlight-end */
 }
-
-/* カードにカーソルが乗った時のスタイル */
+*/
+/*
 .card-style:hover {
-    /* 影をより濃く、大きくして立体感を出す */
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    
-    /* highlight-start */
-    /* Y軸（垂直方向）に-5px移動させ、少し浮き上がったように見せる */
     transform: translateY(-50px) scale(2);
-    /* highlight-end */
 }
+*/
 
-/* 自動生成された cardContainer クラスに対応する */
+/*
 a[class^="cardContainer_"] {
   display: block;
   transition: all 0.3s ease-in-out !important;
@@ -36,6 +29,22 @@ a[class^="cardContainer_"]:hover {
   background-color: #f9f9f9;
   cursor: pointer;
 }
+*/
+
+
+[class^="cardContainer_"] {
+  display: block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+[class^="cardContainer_"]:hover {
+  transform: scale(1.05) translateY(-6px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background-color: var(--ifm-background-color);
+}
+
+
 /*
 .breadcrumbs__link {
   transition: all 0.3s ease;
@@ -47,7 +56,8 @@ a[class^="cardContainer_"]:hover {
   text-decoration: underline;
 }
 */
-
+/*
+成功例
 .cardContainer_fWXF {
   display: block;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -59,3 +69,4 @@ a[class^="cardContainer_"]:hover {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   background-color: var(--ifm-background-color);
 }
+*/
