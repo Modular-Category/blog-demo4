@@ -5,6 +5,9 @@
   "dependencies": {
     "@docusaurus/preset-classic": "^3.8.1",
     "@docusaurus/types": "^3.8.1",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "prism-react-renderer": "^2.4.1"
   },
   "scripts": {
