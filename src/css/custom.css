@@ -18,7 +18,7 @@
     
     /* highlight-start */
     /* Y軸（垂直方向）に-5px移動させ、少し浮き上がったように見せる */
-    transform: translateY(-5px) scale(100);
+    transform: translateY(-50px) scale(2);
     /* highlight-end */
 }
 
