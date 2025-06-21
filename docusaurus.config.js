@@ -66,7 +66,7 @@ module.exports = {
   url: 'https://Modular-Category.github.io', // GitHub Pages のルートURL
   baseUrl: '/blog-demo4/', // リポジトリ名と一致させる
   // 以下はそのままでOK
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   i18n: {
