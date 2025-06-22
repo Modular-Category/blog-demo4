@@ -39,10 +39,10 @@ function HomepageActions() {
         <section className={styles.actions}>
             <div className="container">
                 <div className="row">
-                    <ActionCard to="/docs/tutorials/basic-elements" icon={faGraduationCap} title="チュートリアル">
+                    <ActionCard to="/docs/tutorials/basic_elements" icon={faGraduationCap} title="チュートリアル">
                         QWorldの基本的な使い方を、ステップ・バイ・ステップで学びます。まずはここから始めましょう。
                     </ActionCard>
-                    <ActionCard to="/docs/guides/monoidal-categories" icon={faBook} title="概念ガイド">
+                    <ActionCard to="/docs/guides/monoidal_category" icon={faBook} title="概念ガイド">
                         圏論の概念がQWorldでどう表現されるかを探ります。理論的な背景を理解したい方向けです。
                     </ActionCard>
                     <ActionCard to="/docs/reference/elements/qbox" icon={faFileCode} title="APIリファレンス">
