@@ -1,72 +1,58 @@
-/*
+/**
+ * Docusaurus
+ *
+ * @see https://docusaurus.io/docs/styling#docusaurus-infima-css-variables
+ */
+
+/* デザインシステム: デザイントークンを定義 */
+:root {
+  /* カラーパレット */
+  --ifm-color-primary: #3730a3; /* メインカラー: 濃いインディゴ */
+  --ifm-color-primary-dark: #312b92;
+  --ifm-color-primary-darker: #2d2888;
+  --ifm-color-primary-darkest: #25206f;
+  --ifm-color-primary-light: #3d35b4;
+  --ifm-color-primary-lighter: #4239bb;
+  --ifm-color-primary-lightest: #5447d5;
+  
+  /* フォントサイズ */
+  --ifm-font-size-base: 100%; /* 16px */
+
+  /* スペーシング（間隔） */
+  --ifm-spacing-horizontal: 1.5rem;
+  --ifm-global-spacing: 1rem;
+
+  /* 影 */
+  --ifm-global-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ifm-global-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --ifm-global-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* カードのスタイル */
+  --ifm-card-border-radius: 0.75rem;
+}
+
+/* ダークモード用の変数を上書き */
+[data-theme='dark'] {
+  --ifm-color-primary: #818cf8; /* メインカラー: 明るいインディゴ */
+  --ifm-color-primary-dark: #6e79f6;
+  --ifm-color-primary-darker: #6570f5;
+  --ifm-color-primary-darkest: #4f5bf3;
+  --ifm-color-primary-light: #949cf9;
+  --ifm-color-primary-lighter: #9ea5fa;
+  --ifm-color-primary-lightest: #b6bcfb;
+}
+
+/* 再利用可能なカードコンポーネントのスタイル */
 .card-style {
     background-color: var(--ifm-card-background-color);
     border-radius: var(--ifm-card-border-radius);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    box-shadow: var(--ifm-global-shadow-md);
     transition: all 0.3s ease-in-out;
+    padding: var(--ifm-spacing-horizontal);
+    margin-bottom: var(--ifm-spacing-horizontal);
 }
-*/
-/*
+
 .card-style:hover {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    transform: translateY(-50px) scale(2);
+    box-shadow: var(--ifm-global-shadow-lg);
+    transform: translateY(-5px);
 }
-*/
-
-/*
-a[class^="cardContainer_"] {
-  display: block;
-  transition: all 0.3s ease-in-out !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
-}
-
-a[class^="cardContainer_"]:hover {
-  transform: translateY(-12px) scale(103);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-  background-color: #f9f9f9;
-  cursor: pointer;
-}
-*/
-
-
-[class^="cardContainer_"] {
-  display: block;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-[class^="cardContainer_"]:hover {
-  transform: scale(1.05) translateY(-6px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  background-color: var(--ifm-background-color);
-}
-
-
-/*
-.breadcrumbs__link {
-  transition: all 0.3s ease;
-  color: var(--ifm-link-color);
-}
-
-.breadcrumbs__link:hover {
-  color: var(--ifm-link-hover-color);
-  text-decoration: underline;
-}
-*/
-/*
-成功例
-.cardContainer_fWXF {
-  display: block;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.cardContainer_fWXF:hover {
-  transform: scale(1.05) translateY(-6px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  background-color: var(--ifm-background-color);
-}
-*/
