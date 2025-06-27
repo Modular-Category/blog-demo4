@@ -57,6 +57,9 @@ const config = {
     ({
         // ... themeConfig の中身は変更なし ...
     }),
+  plugins: [
+    require.resolve('./plugins/docusaurus-qworld-plugin'),
+  ],
 };
 
 module.exports = config;
