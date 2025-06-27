@@ -2,6 +2,7 @@
 // Note: type annotations allow type checking and IDEs autocompletion
 
 import {themes} from 'prism-react-renderer';
+const path = require('path');
 
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
@@ -58,7 +59,7 @@ const config = {
         // ... themeConfig の中身は変更なし ...
     }),
   plugins: [
-    require.resolve('./plugins/docusaurus-qworld-plugin'),
+    require(path.resolve(__dirname, './plugins/docusaurus-qworld-plugin')),
   ],
 };
 
