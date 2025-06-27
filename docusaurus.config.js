@@ -29,6 +29,15 @@ const config = {
     defaultLocale: 'ja',
     locales: ['ja', 'en'],
   },
+
+  stylesheets: [
+    {
+      href: 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
+      type: 'text/css',
+      integrity: 'sha384-n8MVd4RsNIU07ypz4/h2vAb3HJe2ttfd3IeTyfkmzDoHp2vcflxGTMNl7C8EnH7z',
+      crossorigin: 'anonymous',
+    },
+  ],
   
   // ...（以下の設定は変更なし）...
   presets: [
