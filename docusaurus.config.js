@@ -49,7 +49,7 @@ const config = {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
             'https://github.com/Modular-Category/blog-demo4/tree/main/',
-          remarkPlugins: [[require('remark-math'), { katex: require('katex') }]],
+          rehypePlugins: [[require('rehype-katex'), {strict: false}]],
         },
         blog: {
           showReadingTime: true,
