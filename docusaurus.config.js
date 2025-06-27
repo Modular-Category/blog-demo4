@@ -67,7 +67,8 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-        // ... themeConfig の中身は変更なし ...
+      // CSSのミニファイを無効化
+      minifyCss: false,
     }),
   plugins: [
     path.resolve(__dirname, './plugins/docusaurus-qworld-plugin'),
