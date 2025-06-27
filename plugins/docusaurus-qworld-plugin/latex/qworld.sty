@@ -1,0 +1,1887 @@
+%% === qworld.sty ===
+%% A LaTeX package for typesetting string diagrams in various categorical structures, including monoidal, dagger compact closed, rigid, braided, symmetric, and compact categories.
+%% Copyright (C) 2025 Niina Ryota
+%% 
+%% This work may be distributed and/or modified under the conditions of the LaTeX Project Public License (LPPL), 
+%% version 1.3c or later. The latest version of this license is in:
+%%   https://www.latex-project.org/lppl.txt
+%% and version 1.3c or later is part of all distributions of LaTeX version 2005/12/01 or later.
+%% 
+%% This work has the LPPL maintenance status "maintained".
+%% 
+%% The Current Maintainer of this work is Niina Ryota.
+%% 
+%% This work consists of the following files:
+%%   qworld.sty
+%%   qworld.pdf
+%%   qworld.tex
+%%   qworld_en.tex
+%%   qworld_en.pdf
+%% ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+%% Modification Policy
+%% - Any modifications must not be distributed under the original package name.
+%% - Any modified versions must clearly state that they are derived from this package.
+%% - The original author (Niina Ryota) must always be credited in derived works.
+%% ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+%% Change Log
+%% Version 1.1.1 (2025-04-14)
+%% - Color annotation for wires and tangles
+%%   - The frame color attribute is now supported for CAP and CUP structures, allowing wires to express object identity through color.
+%%   - Additionally BRAIDING now supports separate L color and R color options for independently coloring the left and right wires.
+%% - Improved wire rendering
+%%   - The rendering of curves has been refined to produce smoother and more aesthetically coherent diagrams.
+%%
+%% Version 1.1.0 (2025-04-03)
+%% - Argument structure revised for symbol commands
+%%   - The following commands were updated to support key-value-style optional arguments instead of mandatory positional arguments:
+%%     - \symbolI
+%%     - \symbols
+%%     - \symbolS
+%%     - \symbolO
+%%     - \symboln
+%%     - \symbolN
+%%   - Specific changes:
+%%     - Old format: \symbolI[i]{ID}{text}[position options]
+%%     - New format: \symbolI[i]{text}[position opotions, id=ID]
+%%   - With this revision, the ID parameter is now optional. In simple cases, \symbolI{text} suffices. This change enables more concise and readable definitions.
+%% - English documentation
+%%   - An English version of the user guide has been added.
+%%
+%% Version 1.0.0 (2025-04-01)
+%% - Initial release.
+%% ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{qworld}[2025/04/14 Version 1.1.1]
+\RequirePackage{tikz, pgffor, ifthen, xparse, xfp, xstring}
+\usetikzlibrary{cd,positioning,shapes.symbols,decorations.pathmorphing,arrows,calc,shapes.misc,intersections,decorations.pathreplacing,decorations.markings,arrows.meta, shapes.geometric}
+
+\makeatletter
+
+\newif\if@qworld@flow@up
+\newif\if@qworld@flow@down
+\newif\if@qworld@flow@left
+\newif\if@qworld@flow@right
+% Default: bottom-to-top (flow up)
+\@qworld@flow@uptrue
+\@qworld@flow@downfalse
+\@qworld@flow@leftfalse
+\@qworld@flow@rightfalse
+
+\newif\ifsimplify
+\simplifytrue
+\DeclareOption{simplify=false}{
+    \simplifyfalse
+}
+
+\def\qworld@rotate@angle{0}
+\def\qworld@yscale@value{1}
+\def\qworld@symbol@output{above}
+\def\qworld@symbol@input{below}
+\def\qworld@wire@label@side{right}
+\def\qworld@boundingbox@symbol@side{right}
+
+\DeclareOption{up}{
+    \@qworld@flow@uptrue
+    \@qworld@flow@downfalse
+    \@qworld@flow@leftfalse
+    \@qworld@flow@rightfalse
+    \def\qworld@rotate@angle{0}
+    \def\qworld@yscale@value{1}
+    \def\qworld@symbol@output{above}
+    \def\qworld@symbol@input{below}
+    \def\qworld@wire@label@side{right}
+    \def\qworld@boundingbox@symbol@side{right}
+}
+\DeclareOption{down}{
+    \@qworld@flow@upfalse
+    \@qworld@flow@downtrue
+    \@qworld@flow@leftfalse
+    \@qworld@flow@rightfalse
+    \def\qworld@rotate@angle{0}
+    \def\qworld@yscale@value{-1}
+    \def\qworld@symbol@output{below}
+    \def\qworld@symbol@input{above}
+    \def\qworld@wire@label@side{right}
+    \def\qworld@boundingbox@symbol@side{right}
+}
+\DeclareOption{left}{
+    \@qworld@flow@upfalse
+    \@qworld@flow@downfalse
+    \@qworld@flow@lefttrue
+    \@qworld@flow@rightfalse
+    \def\qworld@rotate@angle{90}
+    \def\qworld@yscale@value{1}
+    \def\qworld@symbol@output{left}
+    \def\qworld@symbol@input{right}
+    \def\qworld@wire@label@side{above}
+    \def\qworld@boundingbox@symbol@side{below}
+}
+\DeclareOption{right}{%
+    \@qworld@flow@upfalse
+    \@qworld@flow@downfalse
+    \@qworld@flow@leftfalse
+    \@qworld@flow@righttrue
+    \def\qworld@rotate@angle{-90}
+    \def\qworld@yscale@value{1}
+    \def\qworld@symbol@output{right}
+    \def\qworld@symbol@input{left}
+    \def\qworld@wire@label@side{above}
+    \def\qworld@boundingbox@symbol@side{below}
+}
+
+\newcommand{\qworld@diagram}[2][]{
+    \ifmmode
+        {\vcenter{\hbox{
+            \begin{tikzpicture}[rotate=\qworld@rotate@angle, yscale=\qworld@yscale@value, #1]
+                \setcounter{qworldnumeros}{1}
+                \qworld@reset
+                #2
+                \qworld@reset
+            \end{tikzpicture}
+        }}}
+    \else
+        \({\vcenter{\hbox{
+            \begin{tikzpicture}[rotate=\qworld@rotate@angle, yscale=\qworld@yscale@value, #1]
+                \setcounter{qworldnumeros}{1}
+                \qworld@reset
+                #2
+                \qworld@reset
+            \end{tikzpicture}
+        }}}\)
+    \fi
+}
+
+\DeclareOption*{
+  \PackageWarning{qworld}{Unknown option `\CurrentOption'}
+}
+
+\ProcessOptions\relax
+\AtEndOfPackage{
+    \ifsimplify
+        \qworld@simplify
+    \fi
+}
+\newcounter{qworld@box@port@num@N}
+\newcounter{qworld@box@port@num@S}
+\newcounter{qworld@box@port@num@N@temp}
+\newcounter{qworld@box@port@num@S@temp}
+\newcounter{qworld@boundingbox@count}
+\newcounter{qworldnumeros}\setcounter{qworldnumeros}{1}
+\newcommand{\qworld@reset}[1][0,0]
+{
+    \coordinate (qworldat) at (#1);
+}
+
+\newcommand{\qworld@linebreak}[1][1]
+{
+    \coordinate (qworldtempO) at (0,0);
+    \coordinate (qworldattemp) at ([shift={(0,{\fpeval{-1*#1}})}]qworldat);
+    \coordinate (qworldat) at (qworldtempO |- qworldattemp);
+}
+
+\newcommand{\qworld@move}[1][0,0]
+{
+    \coordinate (qworldattemp) at ([shift={{\fpeval{(#1)}}}]qworldat);
+    \coordinate (qworldat) at (qworldattemp);
+}
+
+\newcommand{\qworld@space}[1][1]
+{
+    \qworld@move[#1,0]
+}
+
+\def\qworld@box@fillrate@vertical{0.175}
+\def\qworld@box@fillrate@horizontal{0.37}
+\def\qworld@velocity@x{0}
+\def\qworld@velocity@y{0.85}
+\def\qworld@thickness{thick}
+\def\qworld@box@spider@adjust{1}
+\def\qworld@wire@interval{1}
+\def\qworld@compare@accuracy{1000}
+
+\newcommand{\qworld@text}[2]
+{
+    \node at (#2) {#1};
+}
+
+\NewDocumentCommand{\qworld@id}{O{}}
+{
+    \qworld@id@process[#1]
+}
+
+\NewDocumentCommand{\qworld@box}{O{at=qworldat}}
+{
+    \qworld@box@process[box]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@asymmetry}{O{at=qworldat}}
+{
+    \qworld@box@process[asym]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@adjoint}{O{at=qworldat}}
+{
+    \qworld@box@process[adj]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@transpose}{O{at=qworldat}}
+{
+    \qworld@box@process[transpose]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@conjugate}{O{at=qworldat}}
+{
+    \qworld@box@process[conj]{#1}
+}
+
+
+\NewDocumentCommand{\qworld@box@scalar}{O{at=qworldat}}
+{
+    \qworld@box@process[scalar]{p=0,#1}
+}
+
+\NewDocumentCommand{\qworld@box@state}{O{at=qworldat}}
+{
+    \qworld@box@process[state]{s=0,#1}
+}
+
+\NewDocumentCommand{\qworld@box@effect}{O{at=qworldat}}
+{
+    \qworld@box@process[effect]{n=0,#1}
+}
+
+\NewDocumentCommand{\qworld@box@braid}{O{at=qworldat}}
+{
+    \qworld@box@process[braid]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@braid@inv}{O{at=qworldat}}
+{
+    \qworld@box@process[braidinv]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@symmetry}{O{at=qworldat}}
+{
+    \qworld@box@process[sym]{#1}
+}
+
+\NewDocumentCommand{\qworld@idup}{O{at=qworldat}}
+{
+    \qworld@id@process[arrowtype=->-, #1]
+}
+
+\NewDocumentCommand{\qworld@iddown}{O{at=qworldat}}
+{
+    \qworld@id@process[arrowtype=-<-, #1]
+}
+
+\NewDocumentCommand{\qworld@idupup}{O{at=qworldat}}
+{
+    \qworld@id@process[arrowtype=->>-, #1]
+}
+
+\NewDocumentCommand{\qworld@iddowndown}{O{at=qworldat}}
+{
+    \qworld@id@process[arrowtype=-<<-, #1]
+}
+
+\NewDocumentCommand{\qworld@box@cap}{O{at=qworldat}}
+{
+    \qworld@box@process[cap]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@cup}{O{at=qworldat}}
+{
+    \qworld@box@process[cup]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@cap@reverse}{O{at=qworldat}}
+{
+    \qworld@box@process[caprev]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@cup@reverse}{O{at=qworldat}}
+{
+    \qworld@box@process[cuprev]{#1}
+}
+
+\NewDocumentCommand{\qworld@box@multiplication}{O{at={qworldat}}}
+{
+     \qworld@box@process[spider]{s=2,n=1,#1}
+}
+
+\NewDocumentCommand{\qworld@box@unit}{O{at={qworldat}}}
+{
+     \qworld@box@process[spider]{s=0,n=1,#1}
+}
+\NewDocumentCommand{\qworld@box@counit}{O{at={qworldat}}}
+{
+     \qworld@box@process[spider]{s=1,n=0,#1}
+}
+
+\NewDocumentCommand{\qworld@box@comultiplication}{O{at={qworldat}}}
+{
+    \qworld@box@process[spider]{s=1,n=2,#1}
+}
+
+\NewDocumentCommand{\qworld@box@spider}{O{at={qworldat}}}
+{
+    \qworld@box@process[spider]{#1}
+}
+
+\newcommand{\qworld@canvas}[2][]{
+    \qworld@diagram[#1]{#2}
+}
+
+\NewDocumentCommand{\qworld@boundingbox}{O{notentered} O{notentered}}
+{
+    \ifthenelse{\equal{#2}{notentered}}
+    {
+        \ifthenelse{\equal{#1}{notentered}}{
+            \def\qworld@boundingbox@color{}
+            \def\qworld@boundingbox@ids{1}
+        }{
+            \def\qworld@boundingbox@color{}
+            \def\qworld@boundingbox@ids{#1}
+        }
+    }{
+        \def\qworld@boundingbox@color{#1}
+        \def\qworld@boundingbox@ids{#2}
+    }
+  
+    \setcounter{qworld@boundingbox@count}{0}
+    \foreach \qworldindex in \qworld@boundingbox@ids{
+        \stepcounter{qworld@boundingbox@count}
+    }
+
+    \def\qworld@boundingbox@X@minimum{10000}\def\qworld@boundingbox@X@maximum{-10000}
+    \def\qworld@boundingbox@Y@minimum{10000}\def\qworld@boundingbox@Y@maximum{-10000}
+    \foreach \qworlddirection in {NE, NW, SE, SW}{
+        \foreach \qworldindex in \qworld@boundingbox@ids {
+            \path let \p1 = (\qworlddirection-\qworldindex)
+            in \pgfextra
+            {
+                \xdef\qworldcoordx{\x1} 
+                \xdef\qworldcoordy{\y1}
+            };
+            \xdef\qworld@boundingbox@X@minimum{\fpeval{min(\qworld@boundingbox@X@minimum, \qworldcoordx/1pt)}}
+            \xdef\qworld@boundingbox@Y@minimum{\fpeval{min(\qworld@boundingbox@Y@minimum, \qworldcoordy/1pt)}}
+            \xdef\qworld@boundingbox@X@maximum{\fpeval{max(\qworld@boundingbox@X@maximum, \qworldcoordx/1pt)}}
+            \xdef\qworld@boundingbox@Y@maximum{\fpeval{max(\qworld@boundingbox@Y@maximum, \qworldcoordy/1pt)}}
+        }
+    }
+    \ifnum\theqworld@boundingbox@count=1
+        \foreach \qworldboundingboxid in \qworld@boundingbox@ids{
+            \ifthenelse{\equal{#2}{notentered}}{
+                \draw[densely dotted, \qworld@boundingbox@color] (NW-\qworldboundingboxid) -- (NE-\qworldboundingboxid) -- (SE-\qworldboundingboxid) -- (SW-\qworldboundingboxid) --cycle;
+            }{
+                \draw[densely dotted, fill=#1, fill opacity=0.3] (NW-\qworldboundingboxid) -- (NE-\qworldboundingboxid) -- (SE-\qworldboundingboxid) -- (SW-\qworldboundingboxid) --cycle;
+            }
+        }
+    \else
+        \ifthenelse{\equal{#2}{notentered}}{
+            \draw[densely dotted, \qworld@boundingbox@color] (\qworld@boundingbox@X@minimum pt,\qworld@boundingbox@Y@minimum pt) rectangle (\qworld@boundingbox@X@maximum pt,\qworld@boundingbox@Y@maximum pt);%
+        }{
+            \draw[densely dotted, fill=#1, fill opacity=0.3] (\qworld@boundingbox@X@minimum pt,\qworld@boundingbox@Y@minimum pt) rectangle (\qworld@boundingbox@X@maximum pt,\qworld@boundingbox@Y@maximum pt);%
+        }
+    \fi
+    \coordinate (BB-NE) at (\qworld@boundingbox@X@maximum pt, \qworld@boundingbox@Y@maximum pt);
+    \coordinate (BB-SW) at (\qworld@boundingbox@X@minimum pt, \qworld@boundingbox@Y@minimum pt);
+    \coordinate (BB-NW) at (BB-SW |- BB-NE);
+    \coordinate (BB-SE) at (BB-SW -| BB-NE);
+    \coordinate (BB-N) at ($(BB-NW)!0.5!(BB-NE)$);
+    \coordinate (BB-S) at ($(BB-SW)!0.5!(BB-SE)$);
+    \coordinate (BB-W) at ($(BB-NW)!0.5!(BB-SW)$);
+    \coordinate (BB-E) at ($(BB-NE)!0.5!(BB-SE)$);
+    \coordinate (BB-C) at ($(BB-N)!0.5!(BB-S)$);
+}
+
+\newcommand{\qworld@boundingbox@all}[1][notentered]
+{
+    \ifthenelse{\equal{#1}{notentered}}{
+        \foreach\qworldboundingboxallidnum in {1,...,\theqworldnumeros}
+        {
+            \ifnum\qworldboundingboxallidnum<\theqworldnumeros
+                \qworld@boundingbox[\qworldboundingboxallidnum]
+            \fi
+        }
+    }{
+        \foreach\qworldboundingboxallidnum in {1,...,\theqworldnumeros}{
+            \ifnum\qworldboundingboxallidnum<\theqworldnumeros
+                \qworld@boundingbox[#1][\qworldboundingboxallidnum]
+            \fi
+        }
+    }
+}
+
+\NewDocumentCommand{\qworld@boundingbox@symbol}{O{E} m O{\qworld@boundingbox@symbol@side}}
+{
+    \node[#3] at (BB-#1) {#2};
+}
+
+\newcommand{\qworld@BoundingBox@all}[1][notentered]
+{
+    \addtocounter{qworldnumeros}{-1}
+    \ifthenelse{\equal{#1}{notentered}}{
+        \qworld@boundingbox[1,...,\theqworldnumeros]
+    }{
+        \qworld@boundingbox[#1][1,...,\theqworldnumeros]
+    }
+    \stepcounter{qworldnumeros}
+}
+
+\newcommand{\qworld@loop}[2][1]{
+    \foreach \qworldindex in {1,...,#1}
+    {
+        #2
+    }
+}
+\tikzset{
+    midarrow/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    ->-/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    ->--/.style={
+        decoration={markings, mark=at position 0.25 with {\arrow{>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    -->-/.style={
+        decoration={markings, mark=at position 0.75 with {\arrow{>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    midarrowinv/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{<}}},
+        postaction={decorate}
+  }
+}
+\tikzset{
+    -<-/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{<}}},
+        postaction={decorate}
+  }
+}
+\tikzset{
+    -<--/.style={
+        decoration={markings, mark=at position 0.25 with {\arrow{<}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    --<-/.style={
+        decoration={markings, mark=at position 0.75 with {\arrow{<}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    midddarrow/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{>>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    ->>-/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{>>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    ->>--/.style={
+        decoration={markings, mark=at position 0.25 with {\arrow{>>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    -->>-/.style={
+        decoration={markings, mark=at position 0.75 with {\arrow{>>}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    midddarrowinv/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{<<}}},
+        postaction={decorate}
+  }
+}
+\tikzset{
+    -<<-/.style={
+        decoration={markings, mark=at position 0.5 with {\arrow{<<}}},
+        postaction={decorate}
+  }
+}
+\tikzset{
+    -<<--/.style={
+        decoration={markings, mark=at position 0.25 with {\arrow{<<}}},
+        postaction={decorate}
+    }
+}
+\tikzset{
+    --<<-/.style={
+        decoration={markings, mark=at position 0.75 with {\arrow{<<}}},
+        postaction={decorate}
+    }
+}
+
+\newcommand{\qworld@Arrow@Phantom}[2][>]
+{
+  \tikzset{
+        phantomarrow/.style={
+        decoration={markings, mark=at position #2 with {\arrow{#1}}},
+        postaction={decorate}
+    }
+  }
+}
+\def\qworiginalarrow{\qworld@Arrow@Phantom}
+\newcommand{\qworld@simplify}{
+    \ifdefined\qid
+    \else
+        \def\qid{\qworld@id}
+    \fi
+    \ifdefined\qwire
+    \else
+        \def\qwire{\qworld@id}
+    \fi
+    \ifdefined\qbox
+    \else
+        \def\qbox{\qworld@box}
+    \fi
+    \ifdefined\qasym
+    \else
+        \def\qasym{\qworld@box@asymmetry}
+    \fi
+    \ifdefined\qasymbox
+    \else
+        \def\qasymbox{\qworld@box@asymmetry}
+    \fi
+    \ifdefined\qadj
+    \else
+        \def\qadj{\qworld@box@adjoint}
+    \fi
+    \ifdefined\qadjbox
+    \else
+        \def\qadjbox{\qworld@box@adjoint}
+    \fi
+    \ifdefined\qtranspose
+    \else
+        \def\qtranspose{\qworld@box@transpose}
+    \fi
+    \ifdefined\qtransposebox
+    \else
+        \def\qtransposebox{\qworld@box@transpose}
+    \fi
+    \ifdefined\qtrans
+    \else
+        \def\qtrans{\qworld@box@transpose}
+    \fi
+    \ifdefined\qconj
+    \else
+        \def\qconj{\qworld@box@conjugate}
+    \fi
+    \ifdefined\qconjbox
+    \else
+        \def\qconjbox{\qworld@box@conjugate}
+    \fi
+    \ifdefined\qsc
+    \else
+        \def\qsc{\qworld@box@scalar}
+    \fi
+    \ifdefined\qwsc
+    \else
+        \def\qwsc{\qworld@box@scalar}
+    \fi
+    \ifdefined\qscalar
+    \else
+        \def\qscalar{\qworld@box@scalar}
+    \fi
+    \ifdefined\qstate
+    \else
+        \def\qstate{\qworld@box@state}
+    \fi
+    \ifdefined\qeffect
+    \else
+        \def\qeffect{\qworld@box@effect}
+    \fi
+    \ifdefined\qbraid
+    \else
+        \def\qbraid{\qworld@box@braid}
+    \fi
+    \ifdefined\qbraidinv
+    \else
+        \def\qbraidinv{\qworld@box@braid@inv}
+    \fi
+    \ifdefined\qsymmetry
+    \else
+        \def\qsymmetry{\qworld@box@symmetry}
+    \fi
+    \ifdefined\qsym
+    \else
+        \def\qsym{\qworld@box@symmetry}
+    \fi
+    \ifdefined\qidup
+    \else
+        \def\qidup{\qworld@idup}
+    \fi
+    \ifdefined\qwireup
+    \else
+        \def\qwireup{\qworld@idup}
+    \fi
+    \ifdefined\qwireu
+    \else
+        \def\qwireu{\qworld@idup}
+    \fi
+    \ifdefined\qiddown
+    \else
+        \def\qiddown{\qworld@iddown}
+    \fi
+    \ifdefined\qidown
+    \else
+        \def\qidown{\qworld@iddown}
+    \fi
+    \ifdefined\qwiredown
+    \else
+        \def\qwiredown{\qworld@iddown}
+    \fi
+    \ifdefined\qwired
+    \else
+        \def\qwired{\qworld@iddown}
+    \fi
+    \ifdefined\qwireupup
+    \else
+        \def\qwireupup{\qworld@idupup}
+    \fi
+    \ifdefined\qwireuu
+    \else
+        \def\qwireuu{\qworld@idupup}
+    \fi
+    \ifdefined\qwiredowndown
+    \else
+        \def\qwiredowndown{\qworld@iddowndown}
+    \fi
+    \ifdefined\qwiredd
+    \else
+        \def\qwiredd{\qworld@iddowndown}
+    \fi
+    \ifdefined\qcap
+    \else
+        \def\qcap{\qworld@box@cap}
+    \fi
+    \ifdefined\qcup
+    \else
+        \def\qcup{\qworld@box@cup}
+    \fi
+    \ifdefined\qcaprev
+    \else
+        \def\qcaprev{\qworld@box@cap@reverse}
+    \fi
+    \ifdefined\qcuprev
+    \else
+        \def\qcuprev{\qworld@box@cup@reverse}
+    \fi
+    \ifdefined\qmul
+    \else
+        \def\qmul{\qworld@box@multiplication}
+    \fi
+    \ifdefined\qunit
+    \else
+        \def\qunit{\qworld@box@unit}
+    \fi
+    \ifdefined\qcomul
+    \else
+        \def\qcomul{\qworld@box@comultiplication}
+    \fi
+    \ifdefined\qcounit
+    \else
+        \def\qcounit{\qworld@box@counit}
+    \fi
+    \ifdefined\qspider
+    \else
+        \def\qspider{\qworld@box@spider}
+    \fi
+    \ifdefined\qunitobject
+    \else
+        \def\qunitobject{\qworld@box@unitobject}
+    \fi
+    \ifdefined\qunitob
+    \else
+        \def\qunitob{\qworld@box@unitobject}
+    \fi
+    \ifdefined\qdiagram
+    \else
+      \def\qdiagram{\qworld@diagram}
+    \fi
+    \ifdefined\qwpuzzle
+    \else
+      \def\qwpuzzle{\qworld@diagram}
+    \fi
+    \ifdefined\qpuzzle
+    \else
+      \def\qpuzzle{\qworld@diagram}
+    \fi
+    \ifdefined\qpuz
+    \else
+      \def\qpuz{\qworld@diagram}
+    \fi
+    \ifdefined\qcanvas
+    \else
+      \def\qcanvas{\qworld@canvas}
+    \fi
+    \ifdefined\qcv
+    \else
+      \def\qcv{\qworld@canvas}
+    \fi
+    \ifdefined\q
+    \else
+      \def\q{\qworld@canvas}
+    \fi
+    \ifdefined\Q
+    \else
+        \def\Q{\qworld@canvas}
+    \fi
+    \ifdefined\qbb
+    \else
+        \def\qbb{\qworld@boundingbox}
+    \fi
+    \ifdefined\qbball
+    \else
+        \def\qbball{\qworld@boundingbox@all}
+    \fi
+    \ifdefined\qBBall
+    \else
+        \def\qBBall{\qworld@BoundingBox@all}
+    \fi
+    \ifdefined\qloop
+    \else
+        \def\qloop{\qworld@loop}
+    \fi
+    \ifdefined\symbolI
+    \else
+        \def\symbolI{\qworld@Input}
+    \fi
+    \ifdefined\symbols
+    \else
+        \def\symbols{\qworld@south}
+    \fi
+    \ifdefined\symbolS
+    \else
+        \def\symbolS{\qworld@South}
+    \fi
+    \ifdefined\symbolO
+    \else
+        \def\symbolO{\qworld@Output}
+    \fi
+    \ifdefined\symboln
+    \else
+        \def\symboln{\qworld@north}
+    \fi
+    \ifdefined\symbolN
+    \else
+        \def\symbolN{\qworld@North}
+    \fi
+    \ifdefined\qbbsymbol
+    \else
+        \def\qbbsymbol{\qworld@boundingbox@symbol}
+    \fi
+    \ifdefined\bbsymbol
+    \else
+        \def\bbsymbol{\qworld@boundingbox@symbol}
+    \fi
+    \ifdefined\qreset
+    \else
+      \def\qreset{\qworld@reset}
+    \fi
+    \ifdefined\qbr
+    \else
+        \def\qbr{\qworld@linebreak}
+    \fi
+    \ifdefined\xx
+    \else
+        \def\xx{\qworld@linebreak}
+    \fi
+    \ifdefined\n
+    \else
+        \def\n{\qworld@linebreak}
+    \fi
+    \ifdefined\qcirc
+    \else
+        \def\qcirc{\qworld@linebreak}
+    \fi
+    \ifdefined\qspace
+    \else
+        \def\qspace{\qworld@space}
+    \fi
+    \ifdefined\qmove
+    \else
+        \def\qmove{\qworld@move}
+    \fi
+    \ifdefined\qmv
+    \else
+        \def\qmv{\qworld@move}
+    \fi
+}
+\pgfkeys{
+    /qworld/wire/.cd,
+    at/.store in=\wireat,
+    dom/.store in=\startpoint,
+    cod/.store in=\endpoint,
+    label/.store in=\wirelabel,
+    label side/.store in=\wirelabelside,
+    label at/.store in=\wirelabelat,
+    label option/.store in=\wirelabeloption,
+    name/.store in=\wirename,
+    name side/.store in=\wirenameside,
+    name at/.store in=\wirenameat,
+    name option/.store in=\wirenameoption,
+    id/.store in=\wireid,
+    sv/.store in=\startvelocity,
+    ev/.store in=\endvelocity,
+    arrowtype/.store in=\wirearrowtype,
+    color/.store in=\wirecolor,
+    internal invocation/.store in=\internalinvocation,
+    vertical length/.store in=\wireverlen,
+    vlen/.store in=\wirevlen,
+    slant style/.store in=\wireslantstyle,
+    at/.default={qworldat},
+    dom/.default={qworldat},
+    cod/.default={[shift={(0,1)}]qworldat},
+    label/.default={},
+    label side/.default={\qworld@wire@label@side},
+    label at/.default={midway},
+    label option/.default={right,midway},
+    name/.default={notentered},
+    name at/.default={notentered},
+    name side/.default={notentered},
+    name option/.default={notentered},
+    id/.default={},
+    sv/.default={\qworld@velocity@x,\qworld@velocity@y},
+    ev/.default={\qworld@velocity@x,\qworld@velocity@y},
+    arrowtype/.default={},
+    color/.default={},
+    internal invocation/.default={0},
+    vertical length/.default={1},
+    vlen/.default={notentered},
+    slant style/.default={}
+}
+\newcommand{\qworld@id@process}[1][]
+{
+    \pgfkeys{/qworld/wire/.cd, 
+    at={}, dom={}, cod={}, 
+    label={}, label side={\qworld@wire@label@side},label at={midway}, label option={right,midway}, 
+    name={notentered}, name side={notentered}, name at={notentered}, name option={notentered},
+    id={},
+    sv={\qworld@velocity@x,\qworld@velocity@y}, ev={\qworld@velocity@x,\qworld@velocity@y},
+    arrowtype={}, color={}, internal invocation={0},
+    vertical length={1}, 
+    vlen={notentered},
+    slant style={},
+    #1}
+    \ifthenelse{\equal{\wirename}{notentered}\or\equal{\wirename}{{notentered}}}
+    {}{
+        \pgfkeys{/qworld/wire/.cd, label=\wirename}
+    }
+    \ifthenelse{\equal{\wirenameat}{notentered}\or\equal{\wirenameat}{{notentered}}}
+    {}{
+        \pgfkeys{/qworld/wire/.cd, label at=\wirenameat}
+    }
+    \ifthenelse{\equal{\wirenameside}{notentered}\or\equal{\wirenameside}{{notentered}}}
+    {}{
+        \pgfkeys{/qworld/wire/.cd, label side=\wirenameside}
+    }
+    \ifthenelse{\equal{\wirenameoption}{notentered}\or\equal{\wirenameoption}{{notentered}}}
+    {}{
+        \pgfkeys{/qworld/wire/.cd, label option=\wirenameoption}
+    }
+
+    \ifthenelse{\equal{\wirevlen}{notentered}}
+    {}{
+        \pgfkeys{/qworld/wire/.cd, vertical length=\wirevlen}
+    }
+    \ifx\wireat\empty
+        \ifx\endpoint\empty
+            \ifx\startpoint\empty
+                \coordinate (I-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]qworldat);
+            \else
+                \coordinate (I-\theqworldnumeros) at (\startpoint);          
+            \fi
+            \coordinate (O-\theqworldnumeros) at ([shift={(0,\wireverlen)}]I-\theqworldnumeros);
+        \else
+            \coordinate (O-\theqworldnumeros) at (\endpoint);
+            \ifx\startpoint\empty
+                \coordinate (I-\theqworldnumeros) at ([shift={(0,-\wireverlen)}]O-\theqworldnumeros);
+            \else
+                \coordinate (I-\theqworldnumeros) at (\startpoint);
+            \fi
+        \fi
+    \else
+        \coordinate (I-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]\wireat);
+        \ifx\endpoint\empty
+            \coordinate (O-\theqworldnumeros) at ([shift={(0,\wireverlen)}]I-\theqworldnumeros);
+        \else
+            \coordinate (O-\theqworldnumeros) at (\endpoint);
+        \fi
+    \fi
+    \coordinate (I-1-\theqworldnumeros) at (I-\theqworldnumeros);
+    \coordinate (O-1-\theqworldnumeros) at (O-\theqworldnumeros);
+    \ifx\wireid\empty
+    \else
+        \coordinate (I-\wireid) at (I-\theqworldnumeros);
+        \coordinate (I-1-\wireid) at (I-\theqworldnumeros);
+        \coordinate (O-\wireid) at (O-\theqworldnumeros);
+        \coordinate (O-1-\wireid) at (O-\theqworldnumeros);
+    \fi
+    \ifnum\internalinvocation=0
+        \path let \p1 = (I-\theqworldnumeros),\p2=(O-\theqworldnumeros) in \pgfextra{\xdef\inputx{\x1} \xdef\inputy{\y1} \xdef\outputx{\x2}\xdef\outputy{\y2}};
+        \ifnum\fpeval{ceil(\qworld@compare@accuracy*\inputx/1pt)}<\fpeval{ceil(\qworld@compare@accuracy*\outputx/1pt)}
+            \ifnum\fpeval{ceil(\qworld@compare@accuracy*\inputy/1pt)}<\fpeval{ceil(\qworld@compare@accuracy*\outputy/1pt)}
+                \coordinate (NE-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]O-\theqworldnumeros);
+                \coordinate (SW-\theqworldnumeros) at ([shift={({\fpeval{-0.5*\qworld@wire@interval}},0)}]I-\theqworldnumeros);
+                \coordinate (NW-\theqworldnumeros) at (SW-\theqworldnumeros |- NE-\theqworldnumeros);
+                \coordinate (SE-\theqworldnumeros) at (SW-\theqworldnumeros -| NE-\theqworldnumeros);
+            \else
+                \coordinate (NW-\theqworldnumeros) at ([shift={({\fpeval{-0.5*\qworld@wire@interval}},0)}]I-\theqworldnumeros);
+                \coordinate (SE-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]O-\theqworldnumeros);
+                \coordinate (NE-\theqworldnumeros) at (NW-\theqworldnumeros -| SE-\theqworldnumeros);
+                \coordinate (SW-\theqworldnumeros) at (NW-\theqworldnumeros |- SE-\theqworldnumeros);
+            \fi
+        \else
+            \ifnum\fpeval{ceil(\qworld@compare@accuracy*\inputy/1pt)}<\fpeval{ceil(\qworld@compare@accuracy*\outputy/1pt)}
+                \coordinate (NW-\theqworldnumeros) at ([shift={({\fpeval{-0.5*\qworld@wire@interval}},0)}]O-\theqworldnumeros);
+                \coordinate (SE-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]I-\theqworldnumeros);
+                \coordinate (NE-\theqworldnumeros) at (NW-\theqworldnumeros -| SE-\theqworldnumeros);
+                \coordinate (SW-\theqworldnumeros) at (NW-\theqworldnumeros |- SE-\theqworldnumeros);
+            \else
+                \coordinate (NE-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},0)}]I-\theqworldnumeros);
+                \coordinate (SW-\theqworldnumeros) at ([shift={({\fpeval{-0.5*\qworld@wire@interval}},0)}]O-\theqworldnumeros);
+                \coordinate (NW-\theqworldnumeros) at (SW-\theqworldnumeros |- NE-\theqworldnumeros);
+                \coordinate (SE-\theqworldnumeros) at (SW-\theqworldnumeros -| NE-\theqworldnumeros);
+            \fi
+        \fi
+        \coordinate (N-\theqworldnumeros) at ($(NE-\theqworldnumeros)!0.5!(NW-\theqworldnumeros)$);
+        \coordinate (S-\theqworldnumeros) at ($(SE-\theqworldnumeros)!0.5!(SW-\theqworldnumeros)$);
+        \coordinate (W-\theqworldnumeros) at ($(NW-\theqworldnumeros)!0.5!(SW-\theqworldnumeros)$);
+        \coordinate (E-\theqworldnumeros) at ($(NE-\theqworldnumeros)!0.5!(SE-\theqworldnumeros)$);
+        \coordinate (C-\theqworldnumeros) at ($(N-\theqworldnumeros)!0.5!(S-\theqworldnumeros)$);
+        \ifx\wireid\empty
+        \else
+            \coordinate (SE-\wireid) at (SE-\theqworldnumeros);
+            \coordinate (NE-\wireid) at (NE-\theqworldnumeros);
+            \coordinate (SW-\wireid) at (SW-\theqworldnumeros);
+            \coordinate (NW-\wireid) at (NW-\theqworldnumeros);
+            \coordinate (N-\wireid) at (N-\theqworldnumeros);
+            \coordinate (S-\wireid) at (S-\theqworldnumeros);
+            \coordinate (W-\wireid) at (W-\theqworldnumeros);
+            \coordinate (E-\wireid) at (E-\theqworldnumeros);
+            \coordinate (C-\wireid) at (C-\theqworldnumeros);
+        \fi
+        \coordinate (qworldvertexA) at (I-\theqworldnumeros -| C-\theqworldnumeros);
+        \coordinate (qworldvertexB) at (O-\theqworldnumeros -| C-\theqworldnumeros);
+        \coordinate (qworldvertexC) at ($(I-\theqworldnumeros)!{\fpeval{1-\qworld@velocity@y}}!(qworldvertexA)$);
+        \coordinate (qworldvertexD) at ($(O-\theqworldnumeros)!{\fpeval{1-\qworld@velocity@y}}!(qworldvertexB)$);
+        \coordinate (qworldvertexE) at (qworldvertexC |- C-\theqworldnumeros);
+        \coordinate (qworldvertexF) at (qworldvertexD |- C-\theqworldnumeros);
+        \ifx\wirelabel\empty
+            \draw [\wirearrowtype,\qworld@thickness,\wirecolor] 
+                (I-\theqworldnumeros) ..controls (qworldvertexE) 
+                and (qworldvertexF) .. (O-\theqworldnumeros);
+        \else
+            \draw [\wirearrowtype,\qworld@thickness,\wirecolor] 
+                (I-\theqworldnumeros) ..controls (qworldvertexE)
+                and (qworldvertexF) ..(O-\theqworldnumeros) node[\wirelabelat,\wirelabelside,\wireslantstyle] {\wirelabel};
+        \fi
+        \coordinate (qworldat) at (SE-\theqworldnumeros);
+            \stepcounter{qworldnumeros}
+    \fi
+}
+
+\pgfkeys{
+    /qworld/box/.cd,
+    at/.store in=\boxat,
+    name/.store in=\boxname,
+    arity/.store in=\boxarity,
+    coarity/.store in=\boxcoarity,
+    id/.store in=\boxid,
+    index/.store in=\LuminousIndex,
+    show id/.store in=\boxshowid,
+    with wire/.store in=\boxwithwire,
+    align/.store in=\boxalign,
+    horizontal length/.store in=\boxhorilen,
+    vertical length/.store in=\boxverlen,
+    hlen/.store in=\boxhlen,
+    vlen/.store in=\boxvlen,
+    num L/.store in=\braidfsc,
+    num R/.store in=\braidbsc,
+    center margin length/.store in=\cml,
+    sv/.store in=\startvelocity,
+    ev/.store in=\endvelocity,
+    color/.store in=\boxcolor,
+    morphism color/.store in=\morphismcolor,
+    frame color/.store in=\framecolor,
+    dom color/.store in=\domcolor,
+    cod color/.store in=\codcolor,
+    L color/.store in=\leftcolor,
+    R color/.store in=\rightcolor,
+    L color output/.store in=\leftcoloroutput,
+    R color output/.store in=\rightcoloroutput,
+    arrowtype/.store in=\arrowtype,
+    dom arrowtype/.store in=\domarrowtype,
+    cod arrowtype/.store in=\codarrowtype,
+    internal invocation/.store in=\internalinvocation,
+    num ports/.store in=\copynumPorts,
+    num ports N/.store in=\copynumPortsN,
+    num ports S/.store in=\copynumPortsS,
+    num ports E/.store in=\copynumPortsE,
+    num ports W/.store in=\copynumPortsW,
+    ports/.store in=\copyPorts,
+    ports N/.store in=\copyPortsN,
+    ports S/.store in=\copyPortsS,
+    ports W/.store in=\copyPortsW,
+    ports E/.store in=\copyPortsE,
+    p/.store in=\numPorts,
+    n/.store in=\numPortsN,
+    s/.store in=\numPortsS,
+    e/.store in=\numPortsE,
+    w/.store in=\numPortsW,
+    P/.store in=\Ports,
+    N/.store in=\PortsN,
+    S/.store in=\PortsS,
+    W/.store in=\PortsW,
+    E/.store in=\PortsE,
+    braid smoothness/.store in=\braidsmoothness,
+    dual angle/.store in=\dualangle,
+    slant style/.store in=\boxslantstyle,
+    spider smoothness/.store in=\spidersmoothness,
+    at/.default={qworldat},
+    name/.default={},
+    arity/.default={1},
+    coarity/.default={1},
+    id/.default={},
+    index/.default={},
+    show id/.default={notentered},
+    with wire/.default={notentered},
+    align/.default={true},
+    horizontal length/.default={},
+    vertical length/.default={},
+    hlen/.default={},
+    vlen/.default={},
+    num L/.default={1},
+    num R/.default={1},
+    center margin length/.default={1},
+    sv/.default={\qworld@velocity@x,\qworld@velocity@y},
+    ev/.default={\qworld@velocity@x,-\qworld@velocity@y},
+    color/.default={white},
+    morphism color/.default={black},
+    frame color/.default={black},
+    dom color/.default={notenterd},
+    cod color/.default={notenterd},
+    L color/.default={black},
+    R color/.default={black},
+    L color output/.default={black},
+    R color output/.default={black},
+    arrowtype/.default={},
+    dom arrowtype/.default={},
+    cod arrowtype/.default={},
+    internal invocation/.default={0},
+    num ports/.default={notentered},
+    num ports N/.default={notentered},
+    num ports S/.default={notentered},
+    num ports W/.default={notentered},
+    num ports E/.default={notentered},
+    ports/.default={notentered},
+    ports N/.default={notentered},
+    ports S/.default={notentered},
+    ports W/.default={notentered},
+    ports E/.default={notentered},
+    p/.default={notentered},
+    n/.default={notentered},
+    s/.default={notentered},
+    w/.default={notentered},
+    e/.default={notentered},
+    P/.default={notentered},
+    N/.default={notentered},
+    S/.default={notentered},
+    W/.default={notentered},
+    E/.default={notentered},
+    braid smoothness/.default={0.975},
+    dual angle/.default={89},
+    slant style/.default={},
+    spider smoothness/.default={}
+}
+\newcommand{\qworld@box@process}[2][box]{
+    \def\qworld@box@type{#1}
+    \pgfkeys{/qworld/box/.cd, 
+    at={qworldat},
+    name={},
+    id={},
+    index={},
+    show id={notentered},
+    arity={1},
+    coarity={1},
+    with wire={notentered},
+    align={notentered},
+    horizontal length={notentered},
+    vertical length={1},
+    hlen={notentered},
+    vlen={notentered},
+    num L={1},
+    num R={1},
+    center margin length={1},
+    sv={\qworld@velocity@x,\qworld@velocity@y},
+    ev={\qworld@velocity@x,\qworld@velocity@y},
+    color={white},
+    morphism color={black},
+    frame color={black},
+    dom color={notenterd},
+    cod color={notenterd},
+    L color={black},
+    R color={black},
+    L color output={black},
+    R color output={black},
+    arrowtype={},
+    dom arrowtype={},
+    cod arrowtype={},
+    internal invocation=0,
+    num ports={notentered},
+    num ports N={notentered},
+    num ports S={notentered},
+    num ports W={notentered},
+    num ports E={notentered},
+    ports={notentered},
+    ports N={notentered},
+    ports S={notentered},
+    ports W={notentered},
+    ports E={notentered},
+    p={notentered},
+    n={notentered},
+    s={notentered},
+    w={notentered},
+    e={notentered},
+    P={notentered},
+    N={notentered},
+    S={notentered},
+    W={notentered},
+    E={notentered},
+    braid smoothness={0.99},
+    dual angle={89},
+    slant style={},
+    spider smoothness={0.99},
+    #2}
+    \ifthenelse{
+        \equal{\qworld@box@type}{braid}\or
+        \equal{\qworld@box@type}{braidinv}\or
+        \equal{\qworld@box@type}{sym}\or
+        \equal{\qworld@box@type}{cap}\or
+        \equal{\qworld@box@type}{caprev}\or
+        \equal{\qworld@box@type}{cup}\or
+        \equal{\qworld@box@type}{cuprev}\or
+        \equal{\qworld@box@type}{spider}
+    }{
+        \def\qworld@box@type@tangle{TRUE}
+    }{
+        \def\qworld@box@type@tangle{FALSE}
+    }
+    \ifthenelse{\equal{\domcolor}{notenterd}}{
+        \ifthenelse{\equal{\codcolor}{notenterd}}{
+            \pgfkeys{/qworld/box/.cd, 
+                L color output=\leftcolor,
+                R color output=\rightcolor
+            }
+        }{
+            \pgfkeys{/qworld/box/.cd,
+                R color output=\codcolor,
+                L color output=\codcolor
+            } 
+        }
+    }{
+        \ifthenelse{\equal{\codcolor}{notenterd}}{
+            \pgfkeys{/qworld/box/.cd, 
+                R color=\domcolor,
+                L color=\domcolor
+            }
+        }{
+            \pgfkeys{/qworld/box/.cd, 
+                R color=\domcolor,
+                L color=\domcolor,
+                R color output=\codcolor,
+                L color output=\codcolor
+            } 
+        }
+    }
+
+    \ifthenelse{\equal{\boxshowid}{notentered}}
+    {}{
+        \pgfkeys{/qworld/box/.cd, index={true}} 
+    }
+    \ifthenelse{\equal{\boxhlen}{notentered}}
+    {}{
+        \pgfkeys{/qworld/box/.cd, horizontal length=\boxhlen} 
+    }
+    \ifthenelse{\equal{\boxvlen}{notentered}}
+    {}{
+        \pgfkeys{/qworld/box/.cd, vertical length=\boxvlen} 
+    }
+    \ifthenelse{\equal{\LuminousIndex}{true}\or\equal{\LuminousIndex}{True}\or\equal{\LuminousIndex}{TRUE}}
+    {
+        \pgfkeys{/qworld/box/.cd, name={\theqworldnumeros}}
+    }{}
+    \ifx\domarrowtype\empty
+        \pgfkeys{/qworld/box/.cd, dom arrowtype=\arrowtype}
+    \fi
+    \ifx\codarrowtype\empty
+        \pgfkeys{/qworld/box/.cd, cod arrowtype=\arrowtype}
+    \fi
+    \ifthenelse{\equal{\qworld@box@type}{cap}\or\equal{\qworld@box@type}{caprev}\or\equal{\qworld@box@type}{effect}\or\equal{\qworld@box@type}{scalar}}
+    {
+        \pgfkeys{/qworld/box/.cd, n=0}
+        \ifthenelse{\equal{\qworld@box@type}{cap}\or\equal{\qworld@box@type}{caprev}}
+        {
+            \ifthenelse{\equal{\numPortsS}{notentered}}{
+                \pgfkeys{/qworld/box/.cd, s=2}
+            }{}
+        }{}
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{cup}\or\equal{\qworld@box@type}{cuprev}\or\equal{\qworld@box@type}{state}\or\equal{\qworld@box@type}{scalar}}
+    {
+        \pgfkeys{/qworld/box/.cd, s=0}
+        \ifthenelse{\equal{\qworld@box@type}{cup}\or\equal{\qworld@box@type}{cuprev}}
+        {
+            \ifthenelse{\equal{\numPortsN}{notentered}}{
+                \pgfkeys{/qworld/box/.cd, n=2}
+            }{}
+        }{}
+    }{}
+    \ifthenelse{\equal{\braidfsc}{0}}
+    {
+        \def\braidfsc{1}
+        \def\lstrandtype{dashed}
+    }{
+        \def\lstrandtype{}
+    }
+    \ifthenelse{\equal{\braidbsc}{0}}
+    {
+        \def\braidbsc{1}
+        \def\rstrandtype{dashed}
+    }{
+        \def\rstrandtype{}
+    }
+    \ifthenelse{\equal{\qworld@box@type}{braid}\or\equal{\qworld@box@type}{braidinv}\or\equal{\qworld@box@type}{sym}}
+    {
+        \pgfkeys{/qworld/box/.cd, p={\fpeval{\braidfsc+\braidbsc}}}
+    }{}
+    \ifthenelse{\equal{\numPorts}{notentered}}
+    {}{
+        \pgfkeys{/qworld/box/.cd, n=\numPorts, s=\numPorts}
+    }
+    \ifthenelse{\equal{\numPorts}{0}}
+    {
+        \pgfkeys{/qworld/box/.cd, n=0, s=0}
+    }{}
+    \ifthenelse{\equal{\numPortsS}{0}}
+    {
+        \pgfkeys{/qworld/box/.cd, s=1, S={}}
+    }{}
+    \ifthenelse{\equal{\numPortsN}{0}}
+    {
+        \pgfkeys{/qworld/box/.cd, n=1, N={}}
+    }{}
+    \ifthenelse{\equal{\Ports}{notentered}}
+    {}{
+        \pgfkeys{/qworld/box/.cd, S=\Ports, N=\Ports}
+        % 工事中
+    }
+    \ifthenelse{\equal{\PortsS}{notentered}}
+    {
+        \ifthenelse{\equal{\numPortsS}{notentered}}
+        {
+            \pgfkeys{/qworld/box/.cd,s=1, S={1}}
+        }{
+            \pgfkeys{/qworld/box/.cd, S={1,...,\fpeval{\numPortsS}}}
+        }
+    }{}
+    \ifthenelse{\equal{\PortsN}{notentered}}
+    {
+        \ifthenelse{\equal{\numPortsN}{notentered}}
+        {
+            \pgfkeys{/qworld/box/.cd,n=1, N={1}}
+        }{
+            \pgfkeys{/qworld/box/.cd, N={1,...,\fpeval{\numPortsN}}}
+        }
+    }{}
+    \setcounter{qworld@box@port@num@S}{0}
+    \def\qworldmaxS{0}
+    \ifthenelse{\equal{\PortsS}{{}}\or\equal{\PortsS}{}}
+    {}{
+        \foreach\qworldindex in \PortsS
+        {
+            \stepcounter{qworld@box@port@num@S}
+        }
+        \foreach \qworldindex in\PortsS
+        {
+            \ifnum\qworldmaxS<\qworldindex
+                \xdef\qworldmaxStemp{\qworldindex}
+            \fi
+            \xdef\qworldmaxS{\qworldmaxStemp}
+        }
+    }
+    \def\qworld@card@ports@S{\fpeval{\theqworld@box@port@num@S}}
+
+    \setcounter{qworld@box@port@num@N}{0}
+    \def\qworldmaxN{0}
+    \ifthenelse{\equal{\PortsN}{{}}\or\equal{\PortsN}{}}
+    {}{
+        \foreach\qworldindex in \PortsN
+        {
+            \stepcounter{qworld@box@port@num@N}
+        }
+        \foreach \qworldindex in\PortsN
+        {
+            \ifnum\qworldmaxN<\qworldindex
+                \xdef\qworldmaxNtemp{\qworldindex}
+            \fi
+            \xdef\qworldmaxN{\qworldmaxNtemp}
+        }
+    }
+
+    \def\qworld@card@ports@N{\theqworld@box@port@num@N}
+    \ifthenelse{\equal{\numPortsN}{notentered}\or\equal{\numPortsN}{{notentered}}}
+    {
+        \ifthenelse{\equal{\PortsN}{}\or\equal{\PortsN}{{}}}
+        {
+            \pgfkeys{/qworld/box/.cd, n=1}
+        }{
+            \pgfkeys{/qworld/box/.cd, n=\qworldmaxN}
+        }
+    }{}
+
+    \ifthenelse{\equal{\numPortsS}{notentered}\or\equal{\numPortsS}{{notentered}}}
+    {
+        \ifthenelse{\equal{\PortsS}{}\or\equal{\PortsS}{{}}}
+        {
+            \pgfkeys{/qworld/box/.cd, s=1}
+        }{
+            \pgfkeys{/qworld/box/.cd, s=\qworldmaxS}
+        }
+    }{}
+    \ifnum\numPortsN<\qworldmaxN
+        \pgfkeys{/qworld/box/.cd, n=\qworldmaxN}
+    \fi
+    \ifnum\numPortsS<\qworldmaxS
+        \pgfkeys{/qworld/box/.cd, s=\qworldmaxS}
+    \fi
+    \def\qworldwireScorrection{0}
+    \def\qworldwireNcorrection{0}
+    \ifthenelse{\equal{\boxhorilen}{notentered}}
+    {
+        \def\qworld@margin@s{1}
+        \def\qworld@margin@n{1}
+        \pgfkeys{/qworld/box/.cd, horizontal length={\fpeval{max(1,\qworld@margin@s*(\numPortsS-1)+1,\qworld@margin@n*(\numPortsN-1)+1)}}}
+    }{
+        \ifnum\numPortsS=1
+            \def\qworldwireScorrection{\fpeval{0.5*\boxhorilen-0.5*\qworld@wire@interval}}
+        \fi
+        \ifnum\numPortsN=1
+            \def\qworldwireNcorrection{\fpeval{0.5*\boxhorilen-0.5*\qworld@wire@interval}}
+        \fi
+        \def\qworld@margin@s{\fpeval{(\boxhorilen-\qworld@wire@interval)/(max(1,\numPortsS-1))}}
+        \def\qworld@margin@n{\fpeval{(\boxhorilen-\qworld@wire@interval)/(max(1,\numPortsN-1))}}
+    }
+    \coordinate (SW-\theqworldnumeros) at (\boxat);
+    \coordinate (SE-\theqworldnumeros) at ([shift={(\boxhorilen,0)}]SW-\theqworldnumeros);
+    \coordinate (NE-\theqworldnumeros) at ([shift={(0,\boxverlen)}]SE-\theqworldnumeros);
+    \coordinate (NW-\theqworldnumeros) at (SW-\theqworldnumeros |- NE-\theqworldnumeros);
+    \coordinate (N-\theqworldnumeros) at ($(NE-\theqworldnumeros)!0.5!(NW-\theqworldnumeros)$);
+    \coordinate (S-\theqworldnumeros) at ($(SE-\theqworldnumeros)!0.5!(SW-\theqworldnumeros)$);
+    \coordinate (W-\theqworldnumeros) at ($(NW-\theqworldnumeros)!0.5!(SW-\theqworldnumeros)$);
+    \coordinate (E-\theqworldnumeros) at ($(NE-\theqworldnumeros)!0.5!(SE-\theqworldnumeros)$);
+    \coordinate (C-\theqworldnumeros) at ($(N-\theqworldnumeros)!0.5!(S-\theqworldnumeros)$);
+    \ifx\boxid\empty
+    \else
+        \coordinate (SW-\boxid) at (SW-\theqworldnumeros);
+        \coordinate (SE-\boxid) at (SE-\theqworldnumeros);
+        \coordinate (NE-\boxid) at (NE-\theqworldnumeros);
+        \coordinate (NW-\boxid) at (NW-\theqworldnumeros);
+        \coordinate (N-\boxid) at (N-\theqworldnumeros);
+        \coordinate (S-\boxid) at (S-\theqworldnumeros);
+        \coordinate (W-\boxid) at (W-\theqworldnumeros);
+        \coordinate (E-\boxid) at (E-\theqworldnumeros);
+        \coordinate (C-\boxid) at (C-\theqworldnumeros);
+    \fi
+    \ifnum\numPortsS>0
+        \foreach \qworldindex in {1,...,\numPortsS}
+        {
+            \coordinate (s-\qworldindex-\theqworldnumeros) at ([shift={({\fpeval{(0.5*\qworld@wire@interval)+((\qworldindex-1)*\qworld@margin@s)+\qworldwireScorrection}},{\fpeval{\qworld@box@fillrate@vertical}})}]\boxat);
+            \coordinate (S-\qworldindex-\theqworldnumeros) at (SW-\theqworldnumeros -| s-\qworldindex-\theqworldnumeros);
+            \ifx\boxid\empty
+            \else
+                \coordinate (s-\qworldindex-\boxid) at (s-\qworldindex-\theqworldnumeros);
+                \coordinate (S-\qworldindex-\boxid) at (S-\qworldindex-\theqworldnumeros);
+            \fi
+        }
+    \else
+        \coordinate (s-1-\theqworldnumeros) at ([shift={({\fpeval{(0.5*\qworld@wire@interval)}},{\fpeval{\qworld@box@fillrate@vertical}})}]\boxat);
+        \coordinate (S-1-\theqworldnumeros) at (SW-\theqworldnumeros -| s-1-\theqworldnumeros);
+        \ifx\boxid\empty
+        \else
+            \coordinate (s-1-\boxid) at (s-1-\theqworldnumeros);
+            \coordinate (S-1-\boxid) at (S-1-\theqworldnumeros);
+        \fi
+    \fi
+    \ifnum\numPortsN>0
+        \foreach \qworldindex in {1,...,\numPortsN}
+        {
+            \coordinate (n-\qworldindex-\theqworldnumeros) at ([shift={({\fpeval{(0.5*\qworld@wire@interval)+((\qworldindex-1)*\qworld@margin@n)+\qworldwireNcorrection}},{\fpeval{\boxverlen-\qworld@box@fillrate@vertical}})}]\boxat);
+            \coordinate (N-\qworldindex-\theqworldnumeros) at (NW-\theqworldnumeros -| n-\qworldindex-\theqworldnumeros);
+            \ifx\boxid\empty
+            \else
+                \coordinate (n-\qworldindex-\boxid) at (n-\qworldindex-\theqworldnumeros);
+                \coordinate (N-\qworldindex-\boxid) at (N-\qworldindex-\theqworldnumeros);
+            \fi
+        }
+    \else
+        \coordinate (n-1-\theqworldnumeros) at ([shift={({\fpeval{0.5*\qworld@wire@interval}},{\fpeval{\boxverlen-\qworld@box@fillrate@vertical}})}]\boxat);
+        \coordinate (N-1-\theqworldnumeros) at (NW-\theqworldnumeros -| n-1-\theqworldnumeros);
+        \ifx\boxid\empty
+        \else
+            \coordinate (n-1-\boxid) at (n-1-\theqworldnumeros);
+            \coordinate (N-1-\boxid) at (N-1-\theqworldnumeros);
+        \fi
+    \fi
+    \coordinate (n-\theqworldnumeros) at (N-\theqworldnumeros |- n-1-\theqworldnumeros);
+    \coordinate (s-\theqworldnumeros) at (S-\theqworldnumeros |- s-1-\theqworldnumeros);
+    \ifx\boxid\empty
+    \else
+        \coordinate (n-\boxid) at (n-\theqworldnumeros);
+        \coordinate (s-\boxid) at (s-\theqworldnumeros);
+    \fi
+    \setcounter{qworld@box@port@num@S@temp}{0}
+    \ifnum\qworld@card@ports@S>0
+        \ifthenelse{\equal{\qworld@box@type@tangle}{FALSE}}{
+            \foreach\qworldindex in \PortsS
+            {
+                \stepcounter{qworld@box@port@num@S@temp}
+                \ifnum\theqworld@box@port@num@S@temp>\braidfsc
+                    \draw[\qworld@thickness, \domarrowtype, \rightcolor] (S-\qworldindex-\theqworldnumeros)--(s-\qworldindex-\theqworldnumeros);
+                \else
+                    \draw[\qworld@thickness, \domarrowtype, \leftcolor] (S-\qworldindex-\theqworldnumeros)--(s-\qworldindex-\theqworldnumeros);
+                \fi
+                \coordinate (i-\theqworld@box@port@num@S@temp-\theqworldnumeros) at (s-\qworldindex-\theqworldnumeros);
+                \coordinate (I-\theqworld@box@port@num@S@temp-\theqworldnumeros) at (S-\qworldindex-\theqworldnumeros);
+                \ifx\boxid\empty
+                \else
+                    \coordinate (i-\theqworld@box@port@num@S@temp-\boxid) at (i-\theqworld@box@port@num@S@temp-\theqworldnumeros);
+                    \coordinate (I-\theqworld@box@port@num@S@temp-\boxid) at (I-\theqworld@box@port@num@S@temp-\theqworldnumeros);
+                \fi
+            }
+        }{
+            \foreach\qworldindex in \PortsS
+            {
+                \stepcounter{qworld@box@port@num@S@temp}
+                \coordinate (i-\theqworld@box@port@num@S@temp-\theqworldnumeros) at (s-\qworldindex-\theqworldnumeros);
+                \coordinate (I-\theqworld@box@port@num@S@temp-\theqworldnumeros) at (S-\qworldindex-\theqworldnumeros);
+                \ifx\boxid\empty
+                \else
+                    \coordinate (i-\theqworld@box@port@num@S@temp-\boxid) at (i-\theqworld@box@port@num@S@temp-\theqworldnumeros);
+                    \coordinate (I-\theqworld@box@port@num@S@temp-\boxid) at (I-\theqworld@box@port@num@S@temp-\theqworldnumeros);
+                \fi
+            }
+        }
+    \fi
+    \setcounter{qworld@box@port@num@N@temp}{0}
+    \ifnum\qworld@card@ports@N>0
+        \ifthenelse{\equal{\qworld@box@type@tangle}{FALSE}}{
+            \foreach\qworldindex in \PortsN
+            {
+                \stepcounter{qworld@box@port@num@N@temp}
+                \ifnum\theqworld@box@port@num@N@temp>\braidbsc
+                    \draw[\qworld@thickness, \codarrowtype, \leftcoloroutput] (n-\qworldindex-\theqworldnumeros)--(N-\qworldindex-\theqworldnumeros);
+                \else
+                    \draw[\qworld@thickness, \codarrowtype, \rightcoloroutput] (n-\qworldindex-\theqworldnumeros)--(N-\qworldindex-\theqworldnumeros);
+                \fi
+                \coordinate (o-\theqworld@box@port@num@N@temp-\theqworldnumeros) at (n-\qworldindex-\theqworldnumeros);
+                \coordinate (O-\theqworld@box@port@num@N@temp-\theqworldnumeros) at (N-\qworldindex-\theqworldnumeros);
+                \ifx\boxid\empty
+                \else
+                    \coordinate (o-\theqworld@box@port@num@N@temp-\boxid) at (o-\theqworld@box@port@num@N@temp-\theqworldnumeros);
+                    \coordinate (O-\theqworld@box@port@num@N@temp-\boxid) at (O-\theqworld@box@port@num@N@temp-\theqworldnumeros);
+                \fi
+            }
+        }{
+            \foreach\qworldindex in \PortsN
+            {
+                \stepcounter{qworld@box@port@num@N@temp}
+                \coordinate (o-\theqworld@box@port@num@N@temp-\theqworldnumeros) at (n-\qworldindex-\theqworldnumeros);
+                \coordinate (O-\theqworld@box@port@num@N@temp-\theqworldnumeros) at (N-\qworldindex-\theqworldnumeros);
+                \ifx\boxid\empty
+                \else
+                    \coordinate (o-\theqworld@box@port@num@N@temp-\boxid) at (o-\theqworld@box@port@num@N@temp-\theqworldnumeros);
+                    \coordinate (O-\theqworld@box@port@num@N@temp-\boxid) at (O-\theqworld@box@port@num@N@temp-\theqworldnumeros);
+                \fi
+            }
+        }
+    \fi
+    \ifthenelse{\equal{\qworld@box@type}{effect}}
+    {
+        \coordinate (sw-\theqworldnumeros) at ($(SW-\theqworldnumeros |- s-\theqworldnumeros)!0.1!(s-1-\theqworldnumeros)$);
+        \coordinate (se-\theqworldnumeros) at ($(SE-\theqworldnumeros |- s-\theqworldnumeros)!0.1!(s-\numPortsS-\theqworldnumeros)$);
+        \draw[{\qworld@thickness},draw = {\framecolor}, fill = {\boxcolor}] (se-\theqworldnumeros)--(sw-\theqworldnumeros)--(n-\theqworldnumeros)--cycle;
+        \node[\boxslantstyle] at ([shift={(0,{\fpeval{-0.1*\boxverlen}})}]C-\theqworldnumeros) {{\scalebox{\fpeval{min(\boxhorilen-\qworld@wire@interval+2*\qworld@box@fillrate@horizontal,\boxverlen-2*\qworld@box@fillrate@vertical)}}{\color{\morphismcolor}\boxname}}};
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{state}}
+    {
+        \coordinate (ne-\theqworldnumeros) at ($(n-\numPortsN-\theqworldnumeros -| NE-\theqworldnumeros)!0.1!(n-\numPortsN-\theqworldnumeros)$);
+        \coordinate (nw-\theqworldnumeros) at ($(n-\theqworldnumeros -| NW-\theqworldnumeros)!0.1!(n-1-\theqworldnumeros)$);
+        \draw[{\qworld@thickness}, draw = {\framecolor}, fill = {\boxcolor}] (ne-\theqworldnumeros)--(nw-\theqworldnumeros)--(s-\theqworldnumeros)--cycle;
+        \node[\boxslantstyle] at ([shift={(0,{\fpeval{0.1*\boxverlen}})}]C-\theqworldnumeros) [anchor=center] {{\scalebox{\fpeval{min(\boxhorilen-\qworld@wire@interval+2*\qworld@box@fillrate@horizontal,\boxverlen-2*\qworld@box@fillrate@vertical)}}{\color{\morphismcolor}\boxname}}};
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{scalar}}
+    {
+        \def\qworldxradius{\fpeval{0.45*\boxhorilen}}
+        \def\qworldyradius{\fpeval{0.5*\boxverlen-\qworld@box@fillrate@vertical}}
+        \def\radis{\fpeval{min(\qworldxradius,\qworldyradius)}}    
+        \node[draw={\framecolor}, {\qworld@thickness}, fill={\boxcolor},
+              ellipse, minimum width={\fpeval{2*\qworldxradius}cm}, minimum height={\fpeval{2*\qworldyradius}cm}
+              \boxslantstyle, transform shape] 
+              (SCALAR-\theqworldnumeros) at (C-\theqworldnumeros) {{\scalebox{\fpeval{min(\boxhorilen-\qworld@wire@interval+2*\qworld@box@fillrate@horizontal,\boxverlen-2*\qworld@box@fillrate@vertical)}}{\color{\morphismcolor}\boxname}}};
+    }{}
+    \def\qworld@box@distortion@ne{0}
+    \def\qworld@box@distortion@nw{0}
+    \def\qworld@box@distortion@se{0}
+    \def\qworld@box@distortion@sw{0}
+    \ifthenelse{\equal{\qworld@box@type}{asym}}
+    {
+        \def\qworld@box@distortion@ne{\fpeval{-0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@distortion@se{\fpeval{0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@type{box}
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{adj}}
+    {
+        \def\qworld@box@distortion@ne{\fpeval{0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@distortion@se{\fpeval{-0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@type{box}
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{transpose}}
+    {
+        \def\qworld@box@distortion@nw{\fpeval{-0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@distortion@sw{\fpeval{0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@type{box}
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{conj}}
+    {
+        \def\qworld@box@distortion@nw{\fpeval{0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@distortion@sw{\fpeval{-0.5*(0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal)}}
+        \def\qworld@box@type{box}
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{box}}
+    {
+        \coordinate (nw-\theqworldnumeros) at ([shift={({0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal+\qworld@box@distortion@nw},{-\qworld@box@fillrate@vertical})}]NW-\theqworldnumeros);
+        \coordinate (ne-\theqworldnumeros) at ([shift={({-0.5*\qworld@wire@interval+\qworld@box@fillrate@horizontal+\qworld@box@distortion@ne},{-\qworld@box@fillrate@vertical})}]NE-\theqworldnumeros);
+        \coordinate (se-\theqworldnumeros) at ([shift={({-0.5*\qworld@wire@interval+\qworld@box@fillrate@horizontal+\qworld@box@distortion@se},{\qworld@box@fillrate@vertical})}]SE-\theqworldnumeros);
+        \coordinate (sw-\theqworldnumeros) at ([shift={({0.5*\qworld@wire@interval-\qworld@box@fillrate@horizontal+\qworld@box@distortion@sw},{\qworld@box@fillrate@vertical})}]SW-\theqworldnumeros);
+        \draw[draw = \framecolor, fill = \boxcolor,\qworld@thickness] (nw-\theqworldnumeros)--(ne-\theqworldnumeros)--(se-\theqworldnumeros)--(sw-\theqworldnumeros)--cycle;
+        \ifx\boxid\empty
+        \else
+            \coordinate (nw-\boxid) at (nw-\theqworldnumeros);
+            \coordinate (ne-\boxid) at (ne-\theqworldnumeros);
+            \coordinate (se-\boxid) at (se-\theqworldnumeros);
+            \coordinate (sw-\boxid) at (sw-\theqworldnumeros);
+        \fi
+        % \node[\boxslantstyle] at (C-\theqworldnumeros) [anchor=center] {{\scalebox{\fpeval{min(\boxhorilen-1+2*\qworld@box@fillrate@horizontal,\boxverlen-2*\qworld@box@fillrate@vertical)}}{\color{\morphismcolor}\boxname}}};
+        \node[\boxslantstyle] at (C-\theqworldnumeros) [anchor=center] {{\scalebox{\fpeval{min(\boxhorilen,\boxverlen)}}{\color{\morphismcolor}\boxname}}};
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{braid}}
+    {
+        \foreach\qworldindexx in {1,...,\braidbsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidfsc)}}
+            \coordinate (qworldvertexA) at ($(I-\i-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\qworldindexx-\theqworldnumeros)$);
+            \draw [\qworld@thickness,\rstrandtype, \rightcolor] (I-\i-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\qworldindexx-\theqworldnumeros);
+        }
+        \foreach\qworldindexx in {1,...,\braidfsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidbsc)}}
+            \coordinate (qworldvertexA) at ($(I-\qworldindexx-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\i-\theqworldnumeros)$);
+            \draw [ultra thick, draw = white, double = white, double distance =\pgflinewidth] 
+            (I-\qworldindexx-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\i-\theqworldnumeros);
+            \draw [\qworld@thickness, draw = white, double = \leftcolor, double distance =\pgflinewidth,\lstrandtype] 
+            (I-\qworldindexx-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\i-\theqworldnumeros);
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{braidinv}}
+    {
+        \foreach\qworldindexx in {1,...,\braidfsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidbsc)}}
+            \coordinate (qworldvertexA) at ($(I-\qworldindexx-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\i-\theqworldnumeros)$);
+            \draw [\qworld@thickness,\lstrandtype, \leftcolor] (I-\qworldindexx-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\i-\theqworldnumeros);
+        }
+        \foreach\qworldindexx in {1,...,\braidbsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidfsc)}}
+            \coordinate (qworldvertexA) at ($(I-\i-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\qworldindexx-\theqworldnumeros)$);
+            \draw[ultra thick,draw = white, double = white, double distance = \pgflinewidth,\rstrandtype]
+            (I-\i-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\qworldindexx-\theqworldnumeros);
+            \draw[\qworld@thickness,draw = white, double = \rightcolor, double distance = \pgflinewidth,\rstrandtype]
+            (I-\i-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\qworldindexx-\theqworldnumeros);
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{sym}}
+    {
+        \foreach\qworldindexx in {1,...,\braidbsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidfsc)}}
+            \coordinate (qworldvertexA) at ($(I-\i-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\qworldindexx-\theqworldnumeros)$);
+            \draw [\qworld@thickness,\rstrandtype, \rightcolor] (I-\i-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\qworldindexx-\theqworldnumeros);
+        }
+        \foreach\qworldindexx in {1,...,\braidfsc}
+        {
+            \def\i{\fpeval{round(\qworldindexx+\braidbsc)}}
+            \coordinate (qworldvertexA) at ($(I-\qworldindexx-\theqworldnumeros)!{\fpeval{1-\braidsmoothness}}!(C-\theqworldnumeros)$);
+            \coordinate (qworldvertexB) at ($(C-\theqworldnumeros)!{\fpeval{\braidsmoothness}}!(O-\i-\theqworldnumeros)$);
+            \draw [\qworld@thickness,\lstrandtype, \leftcolor] (I-\qworldindexx-\theqworldnumeros) ..controls (qworldvertexA |- C-\theqworldnumeros) and (qworldvertexB |- C-\theqworldnumeros)..(O-\i-\theqworldnumeros);
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{cap}}
+    {
+        \foreach \qworldi in {1,...,\qworld@card@ports@S}{
+            \def\qworldj{\fpeval{\qworld@card@ports@S-\qworldi+1}}
+            \ifnum\qworldi<\qworldj
+                \draw[midarrow,\qworld@thickness,\framecolor]
+                    (I-\qworldi-\theqworldnumeros) to [out={\dualangle},in={\fpeval{180-\dualangle}}] (I-\qworldj-\theqworldnumeros);
+            \fi
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{cup}}
+    {
+        \foreach \qworldi in {1,...,\qworld@card@ports@N}{
+            \def\qworldj{\fpeval{\qworld@card@ports@N-\qworldi+1}}
+            \ifnum\qworldi<\qworldj
+                \draw[midarrow,\qworld@thickness,\framecolor]
+                    (O-\qworldi-\theqworldnumeros) to [out={\fpeval{-1*\dualangle}},in={\fpeval{\dualangle-180}}] (O-\qworldj-\theqworldnumeros);
+            \fi
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{caprev}}
+    {
+        \foreach \qworldi in {1,...,\qworld@card@ports@S}{
+            \def\qworldj{\fpeval{\qworld@card@ports@S-\qworldi+1}}
+            \ifnum\qworldi<\qworldj
+                \draw[midarrowinv,\qworld@thickness,\framecolor]
+                    (I-\qworldi-\theqworldnumeros) to [out={\dualangle},in={\fpeval{180-\dualangle}}] (I-\qworldj-\theqworldnumeros);
+            \fi
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{cuprev}}
+    {
+        \foreach \qworldi in {1,...,\qworld@card@ports@N}{
+            \def\qworldj{\fpeval{\qworld@card@ports@N-\qworldi+1}}
+            \ifnum\qworldi<\qworldj
+                \draw[midarrowinv,\qworld@thickness,\framecolor]
+                    (O-\qworldi-\theqworldnumeros) to [out={\fpeval{-1*\dualangle}},in={\fpeval{\dualangle-180}}] (O-\qworldj-\theqworldnumeros);
+            \fi
+        }
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{spider}}
+    {
+        \ifnum\qworld@card@ports@S>0
+            \foreach\qworldindexx in\PortsS
+            {
+                \coordinate (qworldvertexD) at ($(C-\theqworldnumeros)!0.5!(S-\qworldindexx-\theqworldnumeros)$);
+                \coordinate (qworldvertexA) at ($(qworldvertexD)!{\fpeval{\spidersmoothness}}!(C-\theqworldnumeros)$);
+                \coordinate (qworldvertexB) at ($(qworldvertexD)!{\fpeval{\spidersmoothness}}!(S-\qworldindexx-\theqworldnumeros)$);
+                \coordinate (qworldvertexG) at (qworldvertexA -| qworldvertexD);
+                \coordinate (qworldvertexH) at (qworldvertexD -| qworldvertexB);
+                \draw [\qworld@thickness,\domarrowtype] (S-\qworldindexx-\theqworldnumeros) ..controls (qworldvertexH) and (qworldvertexG) .. (C-\theqworldnumeros);
+            }
+        \fi
+        \ifnum\qworld@card@ports@N>0
+            \foreach\qworldindexx in\PortsN
+            {
+                \coordinate (qworldvertexD) at ($(C-\theqworldnumeros)!0.5!(N-\qworldindexx-\theqworldnumeros)$);
+                \coordinate (qworldvertexA) at ($(qworldvertexD)!{\fpeval{\spidersmoothness}}!(C-\theqworldnumeros)$);
+                \coordinate (qworldvertexB) at ($(qworldvertexD)!{\fpeval{\spidersmoothness}}!(N-\qworldindexx-\theqworldnumeros)$);
+                \coordinate (qworldvertexG) at (qworldvertexA -| qworldvertexD);
+                \coordinate (qworldvertexH) at (qworldvertexD -| qworldvertexB);
+                \draw [\qworld@thickness,\codarrowtype] (C-\theqworldnumeros) ..controls (qworldvertexG) and (qworldvertexH) .. (N-\qworldindexx-\theqworldnumeros);
+            }
+        \fi
+        \ifx\boxname\empty
+            \draw[\qworld@thickness,draw=\framecolor,fill=\boxcolor] (C-\theqworldnumeros) circle [x radius={0.1},y radius={0.1}];
+        \else
+            \def\qworldxradius{\fpeval{0.4*\boxhorilen}}
+            \def\qworldyradius{\fpeval{0.4*\boxverlen-\qworld@box@fillrate@vertical}}
+            \def\radis{\fpeval{min(\qworldxradius,\qworldyradius)}}    
+            \node[draw={\framecolor}, {\qworld@thickness}, fill={\boxcolor},
+                  ellipse, minimum width={\fpeval{\qworldxradius}cm}, minimum height={\fpeval{\qworldyradius}cm}
+                  \boxslantstyle, transform shape] 
+                  (SCALAR-\theqworldnumeros) at (C-\theqworldnumeros) {{\scalebox{\fpeval{0.6*min(\boxhorilen-\qworld@wire@interval+2*\qworld@box@fillrate@horizontal,\boxverlen-2*\qworld@box@fillrate@vertical)}}{\color{\morphismcolor}\boxname}}};
+        \fi
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{unitobject}}
+    {
+        \draw[draw = {\framecolor}, fill = {\boxcolor}, opacity=0] (NE-\theqworldnumeros)--(NW-\theqworldnumeros)--(SW-\theqworldnumeros)--(SE-\theqworldnumeros)--cycle;
+    }{}
+    \ifthenelse{\equal{\qworld@box@type}{rpcurl}}
+    {
+        \foreach \qworldindex in {1,...,\qworld@card@ports@N}{
+            \coordinate (qworldvertexE) at ([shift={({\fpeval{-0.3*\qworld@margin@s*(\qworldindex-1)}},0)}]E-\theqworldnumeros);
+            \draw[\qworld@thickness] (qworldvertexE) to [in=-\dualangle, out=\dualangle-180] (n-\qworldindex-\theqworldnumeros);
+        }
+        \foreach \qworldindex in {1,...,\qworld@card@ports@S}{
+            \coordinate (qworldvertexE) at ([shift={({\fpeval{-0.3*\qworld@margin@s*(\qworldindex-1)}},0)}]E-\theqworldnumeros);
+            \draw[ultra thick,draw = white, double = white, double distance = \pgflinewidth] (s-\qworldindex-\theqworldnumeros) to [out=\dualangle, in=180-\dualangle] (qworldvertexE);
+            \draw[\qworld@thickness,draw = white, double = \framecolor, double distance = \pgflinewidth] (s-\qworldindex-\theqworldnumeros) to [out=\dualangle, in=180-\dualangle] (qworldvertexE);
+        }
+    }{}
+
+    \coordinate (qworldat) at (SE-\theqworldnumeros);
+    \ifnum\internalinvocation=0
+        \stepcounter{qworldnumeros}
+    \fi
+}
+
+\pgfkeys{
+    /qworld/dom/.cd,
+    id/.store in=\domid,
+    label/.store in=\domlabel,
+    num/.store in=\domnum,
+    at/.store in=\domat,
+    type/.store in=\domtype,
+    id/.default={1},
+    label/.default={},
+    num/.default={1},
+    at/.default={below},
+    type/.default={I}
+}
+\NewDocumentCommand{\qwdom}{O{}}
+{
+    \pgfkeys{
+        /qworld/dom/.cd,
+        id={1},
+        label={},
+        num={1},
+        at={below},
+        type={I},
+        #1
+    }
+    \node[\domat] at (\domtype-\domnum-\domid) {\domlabel};
+}
+\pgfkeys{
+    /qworld/cod/.cd,
+    id/.store in=\codid,
+    label/.store in=\codlabel,
+    num/.store in=\codnum,
+    at/.store in=\codat,
+    type/.store in=\codtype,
+    id/.default={1},
+    label/.default={},
+    num/.default={1},
+    at/.default={above},
+    type/.default={O}
+}
+\NewDocumentCommand{\qwcod}{O{}}
+{
+    \pgfkeys{
+        /qworld/cod/.cd,
+        id={1},
+        label={},
+        num={1},
+        at={above},
+        type={O},
+        #1
+    }
+    \node[\codat] at (\codtype-\codnum-\codid) {\codlabel};
+}
+
+\NewDocumentCommand{\qworld@Input}{O{1} m O{\qworld@symbol@input}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@input,\qworld@forkeys@analyst@atinfo] at (I-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}
+}
+
+\NewDocumentCommand{\qworld@south}{O{1} m O{\qworld@symbol@input}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@input,\qworld@forkeys@analyst@atinfo] at (s-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}}
+
+\NewDocumentCommand{\qworld@South}{O{1} m O{\qworld@symbol@input}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@input,\qworld@forkeys@analyst@atinfo] at (S-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}}
+
+\NewDocumentCommand{\qworld@Output}{O{1} m O{\qworld@symbol@output}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@output,\qworld@forkeys@analyst@atinfo] at (O-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}
+}
+
+\NewDocumentCommand{\qworld@north}{O{1} m O{\qworld@symbol@output}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@output,\qworld@forkeys@analyst@atinfo] at (n-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}
+}
+
+\NewDocumentCommand{\qworld@North}{O{1} m O{\qworld@symbol@output}}
+{
+    \addtocounter{qworldnumeros}{-1}%
+    \qworld@forkeys@analyst{#3}
+    \node[\qworld@symbol@output,\qworld@forkeys@analyst@atinfo] at (N-#1-\qworld@forkeys@analyst@id) {#2};%
+    \stepcounter{qworldnumeros}
+}
+
+\newcommand{\qworld@box@unitobject}[1][at={qworldat}]{
+    \qworld@box@process[unitobject]{#1, P={}}
+}
+\pgfkeys{
+    /qworld/forkeys/.cd,
+    id/.store in=\forkeysid,
+    id/.default=0
+}
+
+\newcommand{\qworld@forkeys@analyst}[1]
+{
+    \def\qworld@forkeys@analyst@atinfo{}
+    \pgfkeys{
+        /qworld/forkeys/.cd, 
+        id=\theqworldnumeros
+    }
+    \def\qworld@forkeys@analyst@id{\forkeysid}
+    \foreach \kvornot in {#1}
+    {
+        \IfSubStr{\kvornot}{=}
+        {
+            \StrBehind{\kvornot}{id=}[\result]%
+            \pgfkeys{
+                /qworld/forkeys/.cd,id=\result
+            }
+            \xdef\qworld@forkeys@analyst@id{\forkeysid}
+        }{
+            \xdef\qworld@forkeys@analyst@atinfo{\kvornot}
+        }
+    }
+}
+\makeatother
+\endinput
