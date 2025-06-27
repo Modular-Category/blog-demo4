@@ -9,7 +9,7 @@ const darkCodeTheme = themes.dracula;
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'QWorld',
-  tagline: 'モノイダル圏のための直感的なLaTeX図式計算パッケージ',
+  tagline: 'モノイダル圏のための直感的な LaTeX 図式計算パッケージ',
   // highlight-start
   url: 'https://Modular-Category.github.io', // ★ あなたのGitHubユーザー名に置き換える
   baseUrl: '/blog-demo4/', // ★ あなたのリポジトリ名に置き換える
@@ -61,29 +61,4 @@ const config = {
 
 export default config;
 
-module.exports = {
-  title: 'QWorld Blog', // 任意のサイト名
-  url: 'https://Modular-Category.github.io', // GitHub Pages のルートURL
-  baseUrl: '/blog-demo4/', // リポジトリ名と一致させる
-  // 以下はそのままでOK
-  onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
-  i18n: {
-    defaultLocale: 'ja',
-    locales: ['ja', 'en'],
-  },
-  presets: [
-    [
-      'classic',
-      {
-        docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-        },
-        theme: {
-          customCss: require.resolve('./src/css/custom.css'),
-        },
-      },
-    ],
-  ],
-};
+
