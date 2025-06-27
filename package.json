@@ -1,6 +1,9 @@
 {
   "devDependencies": {
-    "@types/node": "^24.0.3"
+    "@types/node": "^24.0.3",
+    "eslint": "^9.29.0",
+    "eslint-plugin-prettier": "^5.5.0",
+    "prettier": "^3.5.3"
   },
   "dependencies": {
     "@docusaurus/preset-classic": "^3.8.1",

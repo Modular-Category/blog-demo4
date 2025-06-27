@@ -14,14 +14,14 @@ sidebar_position: 1
 
 ## オプション
 
-`\qbox`は、チュートリアルで解説した多くの[カスタマイズオプション](./customizing-boxes.md)を受け入れます。
+`\qbox`は、チュートリアルで解説した多くの[カスタマイズオプション](../../tutorials/customizing_boxes.md)を受け入れます。
 
 -   `n`, `N`: 上部（出力）ワイヤーの設定
 -   `s`, `S`: 下部（入力）ワイヤーの設定
 -   `hlen`, `vlen`: サイズの設定
 -   `name`: ラベルの設定
 -   `color`, `frame color`, `morphism color`: 色の設定
--   その他、[共通オプション](../options.md)も使用可能です。
+-   その他、[共通オプション](./options.md)も使用可能です。
 
 ## 特殊なボックス
 
