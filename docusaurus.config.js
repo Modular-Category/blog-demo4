@@ -59,7 +59,7 @@ const config = {
         // ... themeConfig の中身は変更なし ...
     }),
   plugins: [
-    path.join(__dirname, 'plugins/docusaurus-qworld-plugin'),
+    require.resolve('./plugins/docusaurus-qworld-plugin'),
   ],
 };
 
