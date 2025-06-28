@@ -55,7 +55,10 @@ module.exports = function remarkQWorldDiagram() {
         const fullLatexContent = latexPreamble + latexCode + latexPostamble;
 
         try {
-          // 1. Write LaTeX code to a temporary .tex file
+          // 1. Copy qworld.sty to temp directory so LaTeX can find it
+          fs.copyFileSync(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
+
+          // 2. Write LaTeX code to a temporary .tex file
           fs.writeFileSync(tempTexFilePath, fullLatexContent);
 
           // 2. Compile LaTeX to PDF using pdflatex
