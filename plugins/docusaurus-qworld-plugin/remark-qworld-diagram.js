@@ -22,6 +22,7 @@ module.exports = function remarkQWorldDiagram(options) {
   ensureDirExists(TEMP_DIR);
 
   return (tree) => {
+    console.log('[QWorld-Diagram] DEBUG: Full AST tree:', JSON.stringify(tree, null, 2));
     visit(tree, 'code', (node) => {
       if (node.lang === 'qworld-diagram') {
         console.log('[QWorld-Diagram] Found a qworld-diagram code block.');
