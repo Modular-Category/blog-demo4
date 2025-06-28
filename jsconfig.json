@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "jsx": "react",
+    "checkJs": true
+  },
+  "exclude": [
+    "node_modules",
+    "build",
+    ".docusaurus",
+    "docusaurus.config.js"
+  ]
+}
