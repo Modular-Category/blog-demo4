@@ -51,7 +51,7 @@ const config = {
             require('remark-math'),
             [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { /* options */ }],
           ],
-          rehypePlugins: [[require('rehype-katex'), {strict: false}]],
+          rehypePlugins: [[require('rehype-katex'), {strict: false}], [require('rehype-raw'), { passThrough: ['mdxJsxFlowElement', 'mdxJsxTextElement', 'mdxjsEsm'] }]],
         },
         blog: {
           showReadingTime: true,
