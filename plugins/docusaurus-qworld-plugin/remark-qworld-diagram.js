@@ -16,7 +16,7 @@ function ensureDirExists(dir) {
   }
 }
 
-module.exports = function remarkQWorldDiagram() {
+module.exports = function remarkQWorldDiagram(options) {
   console.log('[QWorld-Diagram] Initializing plugin.');
   ensureDirExists(OUTPUT_SVG_DIR);
   ensureDirExists(TEMP_DIR);
@@ -29,7 +29,7 @@ module.exports = function remarkQWorldDiagram() {
         const diagramHash = crypto.createHash('md5').update(latexCode).digest('hex');
         const svgFileName = `${diagramHash}.svg`;
         const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
-        const publicPath = `/${OUTPUT_BASE_DIR}/${svgFileName}`;
+        const publicPath = `${options.baseUrl}${OUTPUT_BASE_DIR}/${svgFileName}`;
 
         console.log(`[QWorld-Diagram] Hash: ${diagramHash}`);
         console.log(`[QWorld-Diagram] SVG Path: ${svgFilePath}`);

@@ -49,7 +49,7 @@ const config = {
             'https://github.com/Modular-Category/blog-demo4/tree/main/',
           remarkPlugins: [
             require('remark-math'),
-            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { /* options */ }],
+            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: config.baseUrl }],
           ],
           rehypePlugins: [[require('rehype-katex'), {strict: false}], [require('rehype-raw'), { passThrough: ['mdxJsxFlowElement', 'mdxJsxTextElement', 'mdxjsEsm'] }]],
         },
