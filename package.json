@@ -15,7 +15,7 @@
     "prism-react-renderer": "^2.4.1",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^4.0.0"
   },
   "scripts": {
     "start": "docusaurus start",
