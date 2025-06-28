@@ -47,7 +47,10 @@ const config = {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
             'https://github.com/Modular-Category/blog-demo4/tree/main/',
-          remarkPlugins: [require('remark-math')],
+          remarkPlugins: [
+            require('remark-math'),
+            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { /* options */ }],
+          ],
           rehypePlugins: [[require('rehype-katex'), {strict: false}]],
         },
         blog: {
@@ -68,9 +71,7 @@ const config = {
       // CSSのミニファイを無効化
       minifyCss: false,
     }),
-  plugins: [
-    path.resolve(__dirname, './plugins/docusaurus-qworld-plugin'),
-  ],
+  
 };
 
 module.exports = config;
