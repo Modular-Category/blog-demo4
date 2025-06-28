@@ -6,13 +6,15 @@ const path = require('path');
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
 
+const BASE_URL = '/blog-demo4/'; // ★ あなたのリポジトリ名に置き換える
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'QWorld',
   tagline: 'モノイダル圏のための直感的な LaTeX 図式計算パッケージ',
   // highlight-start
   url: 'https://Modular-Category.github.io', // ★ あなたのGitHubユーザー名に置き換える
-  baseUrl: '/blog-demo4/', // ★ あなたのリポジトリ名に置き換える
+  baseUrl: BASE_URL, // ★ あなたのリポジトリ名に置き換える
   // highlight-end
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -49,7 +51,7 @@ const config = {
             'https://github.com/Modular-Category/blog-demo4/tree/main/',
           remarkPlugins: [
             require('remark-math'),
-            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: config.baseUrl }],
+            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: BASE_URL }],
           ],
           rehypePlugins: [[require('rehype-katex'), {strict: false}], [require('rehype-raw'), { passThrough: ['mdxJsxFlowElement', 'mdxJsxTextElement', 'mdxjsEsm'] }]],
         },
