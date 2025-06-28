@@ -30,6 +30,10 @@ jobs:
           cache: "npm"
       - name: Install dependencies
         run: npm install
+      - name: Install TeX Live and pdf2svg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-luatex pdf2svg
       - name: Build
         run: npm run build
       - name: Setup Pages
