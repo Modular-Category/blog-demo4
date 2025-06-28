@@ -4,7 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 
-const OUTPUT_BASE_DIR = 'static/img/qworld-diagrams';
+const OUTPUT_BASE_DIR = 'img/qworld-diagrams';
 const OUTPUT_SVG_DIR = path.join(process.cwd(), OUTPUT_BASE_DIR);
 const LATEX_PLUGIN_DIR = path.join(process.cwd(), 'plugins/docusaurus-qworld-plugin/latex');
 const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
@@ -29,7 +29,7 @@ module.exports = function remarkQWorldDiagram(options) {
         const diagramHash = crypto.createHash('md5').update(latexCode).digest('hex');
         const svgFileName = `${diagramHash}.svg`;
         const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
-        const publicPath = `${options.baseUrl}${OUTPUT_BASE_DIR}/${svgFileName}`;
+        const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
         console.log(`[QWorld-Diagram] Hash: ${diagramHash}`);
         console.log(`[QWorld-Diagram] SVG Path: ${svgFilePath}`);
