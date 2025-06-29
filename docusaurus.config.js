@@ -53,7 +53,7 @@ const config = {
             require('remark-math'),
             [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: BASE_URL }],
           ],
-          rehypePlugins: [[require('rehype-katex'), {strict: false}], [require('rehype-raw'), { passThrough: ['mdxJsxFlowElement', 'mdxJsxTextElement', 'mdxjsEsm'] }]],
+          rehypePlugins: [[require('rehype-raw'), { passThrough: ['mdxJsxFlowElement', 'mdxJsxTextElement', 'mdxjsEsm'] }], [require('rehype-katex'), {strict: false}]],
         },
         blog: {
           showReadingTime: true,
