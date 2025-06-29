@@ -2,8 +2,8 @@ const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs'); // Keep fs for existsSync for now, or switch to fs.promises.access
 const { exec } = require('child_process'); // Use async exec
-const { promisify } = require('util'); // ADDED: Import promisify
-const execAsync = promisify(exec); // ADDED: Promisify exec
+const { promisify } = require('util'); // Import promisify
+const execAsync = promisify(exec); // Promisify exec
 
 // Import promise-based versions
 const fsp = require('fs').promises;
@@ -54,11 +54,12 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
   // Apply wrapping based on wrapType
   if (wrapType === 'inline') {
-    wrappedLateexCode = `$${rawLatexCode}$`;
+    wrappedLatexCode = `$${rawLatexCode}$`;
   } else if (wrapType === 'display') {
     wrappedLatexCode = `$$${rawLatexCode}$$`;
+  } else if (wrapType === 'block') { // ADDED: Explicitly wrap block type with $$. This ensures it's treated as display math.
+    wrappedLatexCode = `$$${rawLatexCode}$$`;
   }
-  // For 'block' type, no additional wrapping is needed as it's assumed to be a full q{} environment.
 
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', wrappedLatexCode);
 
@@ -71,7 +72,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
     try {
       console.log(`[QWorld-Diagram] ${logPrefix} Running lualatex on ${tempTexFilePath}...`);
-      await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR }); // MODIFIED: Use execAsync
+      await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR });
     } catch (error) {
       console.error(`[QWorld-Diagram] ${logPrefix} lualatex failed.`);
       const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
@@ -92,7 +93,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
     try {
       console.log(`[QWorld-Diagram] ${logPrefix} Running pdf2svg on ${tempPdfFilePath}...`);
-      await execAsync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`); // MODIFIED: Use execAsync
+      await execAsync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`);
     } catch (error) {
       console.error(`[QWorld-Diagram] ${logPrefix} pdf2svg failed.`);
       throw error;
