@@ -1,5 +1,5 @@
 // plugins/docusaurus-qworld-plugin/rehype-qworld-diagram.js
-const visit = require('unist-util-visit');
+const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
