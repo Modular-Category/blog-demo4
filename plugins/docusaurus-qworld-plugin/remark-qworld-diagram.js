@@ -1,28 +1,111 @@
 const { visit } = require('unist-util-visit');
 const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const { execSync } = require('child_process');
+const fs = require('fs'); // Keep fs for existsSync for now, or switch to fs.promises.access
+const { exec } = require('child_process'); // Use async exec
+
+// Import promise-based versions
+const fsp = require('fs').promises;
+const child_process_promises = require('child_process').promises;
 
 const OUTPUT_BASE_DIR = 'img/qworld-diagrams';
 const OUTPUT_SVG_DIR = path.join(process.cwd(), OUTPUT_BASE_DIR);
 const LATEX_PLUGIN_DIR = path.join(process.cwd(), 'plugins/docusaurus-qworld-plugin/latex');
 const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
 
-function ensureDirExists(dir) {
-  if (!fs.existsSync(dir)) {
-    console.log(`[QWorld-Diagram] Creating directory: ${dir}`);
-    fs.mkdirSync(dir, { recursive: true });
+async function ensureDirExists(dir) {
+  try {
+    await fsp.access(dir);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log(`[QWorld-Diagram] Creating directory: ${dir}`);
+      await fsp.mkdir(dir, { recursive: true });
+    } else {
+      throw error;
+    }
   }
 }
 
+/**
+ * Generates an SVG from LaTeX code asynchronously.
+ * @param {string} latexCode - The core LaTeX code to compile.
+ * @param {string} diagramHash - MD5 hash of the LaTeX code.
+ * @param {string} fullLatexContent - The complete LaTeX document content including preamble and postamble.
+ * @param {string} svgFilePath - Absolute path where the SVG should be saved.
+ * @param {string} tempTexFilePath - Absolute path for the temporary .tex file.
+ * @param {string} tempPdfFilePath - Absolute path for the temporary .pdf file.
+ * @param {string} logPrefix - Prefix for console logs (e.g., "inlineMath").
+ * @returns {boolean} - True if SVG generation was successful, false otherwise.
+ */
+async function generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, logPrefix = '') {
+  let success = false;
+  try {
+    console.log(`[QWorld-Diagram] ${logPrefix} Copying qworld.sty...`);
+    await fsp.copyFile(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
+
+    console.log(`[QWorld-Diagram] ${logPrefix} Writing temporary TeX file to: ${tempTexFilePath}`);
+    await fsp.writeFile(tempTexFilePath, fullLatexContent);
+
+    try {
+      console.log(`[QWorld-Diagram] ${logPrefix} Running lualatex on ${tempTexFilePath}...`);
+      await child_process_promises.exec(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR });
+    } catch (error) {
+      console.error(`[QWorld-Diagram] ${logPrefix} lualatex failed.`);
+      const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
+      try {
+        const logContent = await fsp.readFile(logPath, 'utf8');
+        error.message += `\n\n--- LaTeX Log (${logPrefix}) ---\n${logContent}`;
+      } catch (readLogError) {
+        // Ignore if log file doesn't exist
+      }
+      throw error;
+    }
+
+    try {
+      await fsp.access(tempPdfFilePath); // Check if PDF exists
+    } catch (error) {
+      throw new Error(`lualatex finished but PDF file was not created for ${logPrefix} at ${tempPdfFilePath}`);
+    }
+
+    try {
+      console.log(`[QWorld-Diagram] ${logPrefix} Running pdf2svg on ${tempPdfFilePath}...`);
+      await child_process_promises.exec(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`);
+    } catch (error) {
+      console.error(`[QWorld-Diagram] ${logPrefix} pdf2svg failed.`);
+      throw error;
+    }
+
+    console.log(`[QWorld-Diagram] ${logPrefix} Generation complete.`);
+    success = true;
+
+  } catch (error) {
+    console.error(`\n\n[QWorld-Diagram] >>> AN ERROR OCCURRED (${logPrefix}) <<<`);
+    console.error(`[QWorld-Diagram] Error compiling diagram (hash: ${diagramHash}):`);
+    console.error(`Full Error: ${error.message}`);
+    // Note: stdout/stderr from exec are already part of the error object
+  } finally {
+    const filesToDelete = fs.readdirSync(TEMP_DIR).filter(file => file.startsWith(diagramHash));
+    for (const file of filesToDelete) {
+      try {
+        await fsp.unlink(path.join(TEMP_DIR, file));
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    }
+  }
+  return success;
+}
+
+
 module.exports = function remarkQWorldDiagram(options) {
   console.log('[QWorld-Diagram] Initializing plugin.');
-  ensureDirExists(OUTPUT_SVG_DIR);
-  ensureDirExists(TEMP_DIR);
+  ensureDirExists(OUTPUT_SVG_DIR); // This will now return a Promise, but the plugin setup doesn't await it.
+  ensureDirExists(TEMP_DIR);       // This is fine for initial setup, as subsequent operations will await.
 
-  return (tree) => {
+  return async (tree) => { // Make the main function async
     console.log('[QWorld-Diagram] DEBUG: Full AST tree:', JSON.stringify(tree, null, 2));
+
+    const diagramPromises = [];
+
     visit(tree, 'code', (node) => {
       if (node.lang === 'qworld-diagram') {
         console.log('[QWorld-Diagram] Found a qworld-diagram code block.');
@@ -35,7 +118,7 @@ module.exports = function remarkQWorldDiagram(options) {
         console.log(`[QWorld-Diagram] Hash: ${diagramHash}`);
         console.log(`[QWorld-Diagram] SVG Path: ${svgFilePath}`);
 
-        if (fs.existsSync(svgFilePath)) {
+        if (fs.existsSync(svgFilePath)) { // Keep synchronous check for cache for performance
           console.log('[QWorld-Diagram] Found cached SVG. Skipping generation.');
           node.type = 'html';
           node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
@@ -48,75 +131,22 @@ module.exports = function remarkQWorldDiagram(options) {
         const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
         const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-        const latexPreamble = String.raw`
-\documentclass{article}
-\usepackage{qworld}
-\begin{document}
-`;
-        const latexPostamble = String.raw`
-\end{document}
-`;
+        const latexPreamble = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n`;
+        const latexPostamble = String.raw`\n\\end{document}\n`;
         const fullLatexContent = latexPreamble + latexCode + latexPostamble;
 
-        try {
-          console.log('[QWorld-Diagram] Copying qworld.sty...');
-          fs.copyFileSync(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
-
-          console.log(`[QWorld-Diagram] Writing temporary TeX file to: ${tempTexFilePath}`);
-          fs.writeFileSync(tempTexFilePath, fullLatexContent);
-
-          try {
-            console.log(`[QWorld-Diagram] Running lualatex on ${tempTexFilePath}...`);
-            execSync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR, stdio: 'pipe' });
-          } catch (error) {
-            console.error('[QWorld-Diagram] lualatex failed.');
-            const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
-            if (fs.existsSync(logPath)) {
-              const logContent = fs.readFileSync(logPath, 'utf8');
-              error.message += `\n\n--- LaTeX Log ---\n${logContent}`;
-            }
-            throw error;
-          }
-
-          if (!fs.existsSync(tempPdfFilePath)) {
-            throw new Error(`lualatex finished but PDF file was not created at ${tempPdfFilePath}`);
-          }
-
-          try {
-            console.log(`[QWorld-Diagram] Running pdf2svg on ${tempPdfFilePath}...`);
-            execSync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`, { stdio: 'pipe' });
-          } catch (error) {
-            console.error('[QWorld-Diagram] pdf2svg failed.');
-            throw error;
-          }
-
-          console.log('[QWorld-Diagram] Generation complete. Inserting <img> tag.');
-          node.type = 'html';
-          node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
-
-        } catch (error) {
-          console.error('\n\n[QWorld-Diagram] >>> AN ERROR OCCURRED <<<');
-          console.error(`[QWorld-Diagram] Error compiling diagram (hash: ${diagramHash}):`);
-          console.error(`STDOUT: ${error.stdout?.toString()}`);
-          console.error(`STDERR: ${error.stderr?.toString()}`);
-          console.error(`Full Error: ${error.message}`);
-          console.error('[QWorld-Diagram] >>> END OF ERROR <<<');
-
-          node.type = 'html';
-          node.value = `<div style="border: 2px solid red; padding: 1em; background-color: #ffeeee;">
-            <p style="color: red; font-weight: bold;">Error rendering QWorld diagram.</p>
-            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>
-          </div>`;
-        } finally {
-            const filesToDelete = fs.readdirSync(TEMP_DIR).filter(file => file.startsWith(diagramHash));
-            filesToDelete.forEach(file => {
-                try {
-                    fs.unlinkSync(path.join(TEMP_DIR, file));
-                } catch (e) {
-                    // Ignore errors during cleanup
-                }
-            });
-        }
+        diagramPromises.push(
+          generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'code block')
+            .then(success => {
+              if (success) {
+                node.type = 'html';
+                node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
+              } else {
+                node.type = 'html';
+                node.value = `<div style="border: 2px solid red; padding: 1em; background-color: #ffeeee;">\n            <p style="color: red; font-weight: bold;">Error rendering QWorld diagram.</p>\n            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>\n          </div>`;
+              }
+            })
+        );
       }
     });
 
@@ -129,7 +159,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
       const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
-      if (fs.existsSync(svgFilePath)) {
+      if (fs.existsSync(svgFilePath)) { // Keep synchronous check for cache for performance
         console.log('[QWorld-Diagram] Found cached SVG for inlineMath. Skipping generation.');
         node.type = 'html';
         node.value = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
@@ -142,73 +172,21 @@ module.exports = function remarkQWorldDiagram(options) {
       const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-      const fullLatexContent = String.raw`
-\documentclass{article}
-\usepackage{qworld}
-\begin{document}
-\q{latexCode}
-\end{document}
-`;
+      const fullLatexContent = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n${latexCode}$\n\\end{document}\n`;
 
-      try {
-        console.log('[QWorld-Diagram] Copying qworld.sty for inlineMath...');
-        fs.copyFileSync(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
-
-        console.log(`[QWorld-Diagram] Writing temporary TeX file for inlineMath to: ${tempTexFilePath}`);
-        fs.writeFileSync(tempTexFilePath, fullLatexContent);
-
-        try {
-          console.log(`[QWorld-Diagram] Running lualatex for inlineMath on ${tempTexFilePath}...`);
-          execSync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR, stdio: 'pipe' });
-        } catch (error) {
-          console.error('[QWorld-Diagram] lualatex failed for inlineMath.');
-          const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
-          if (fs.existsSync(logPath)) {
-            const logContent = fs.readFileSync(logPath, 'utf8');
-            error.message += `\n\n--- LaTeX Log (inlineMath) ---\n${logContent}`;
-          }
-          throw error;
-        }
-
-        if (!fs.existsSync(tempPdfFilePath)) {
-          throw new Error(`lualatex finished but PDF file was not created for inlineMath at ${tempPdfFilePath}`);
-        }
-
-        try {
-          console.log(`[QWorld-Diagram] Running pdf2svg for inlineMath on ${tempPdfFilePath}...`);
-          execSync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`, { stdio: 'pipe' });
-        } catch (error) {
-          console.error('[QWorld-Diagram] pdf2svg failed for inlineMath.');
-          throw error;
-        }
-
-        console.log('[QWorld-Diagram] Generation complete for inlineMath. Inserting <img> tag.');
-        node.type = 'html';
-        node.value = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
-
-      } catch (error) {
-        console.error('\n\n[QWorld-Diagram] >>> AN ERROR OCCURRED (inlineMath) <<<');
-        console.error(`[QWorld-Diagram] Error compiling diagram (hash: ${diagramHash}):`);
-        console.error(`STDOUT: ${error.stdout?.toString()}`);
-        console.error(`STDERR: ${error.stderr?.toString()}`);
-        console.error(`Full Error: ${error.message}`);
-        console.error('[QWorld-Diagram] >>> END OF ERROR (inlineMath) <<<');
-
-        node.type = 'html';
-        node.value = `<div style="border:2px solid red;padding:1em;background-color:#ffeeee">
-            <p style="color:red;font-weight:bold">Error rendering QWorld diagram (inlineMath).</p>
-            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>
-          </div>`;
-      } finally {
-          const filesToDelete = fs.readdirSync(TEMP_DIR).filter(file => file.startsWith(diagramHash));
-          filesToDelete.forEach(file => {
-              try {
-                  fs.unlinkSync(path.join(TEMP_DIR, file));
-              } catch (e) {
-                  // Ignore errors during cleanup
-              }
-          });
-      }
+      diagramPromises.push(
+        generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'inlineMath')
+          .then(success => {
+            if (success) {
+              node.type = 'html';
+              node.value = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
+            }
+            else {
+              node.type = 'html';
+              node.value = `<div style="border:2px solid red;padding:1em;background-color:#ffeeee">\n            <p style="color:red;font-weight:bold">Error rendering QWorld diagram (inlineMath).</p>\n            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>\n          </div>`;
+            }
+          })
+      );
     });
 
     visit(tree, 'math', (node) => {
@@ -220,7 +198,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
       const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
-      if (fs.existsSync(svgFilePath)) {
+      if (fs.existsSync(svgFilePath)) { // Keep synchronous check for cache for performance
         console.log('[QWorld-Diagram] Found cached SVG for math. Skipping generation.');
         node.type = 'html';
         node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
@@ -233,73 +211,22 @@ module.exports = function remarkQWorldDiagram(options) {
       const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-      const fullLatexContent = String.raw`
-\documentclass{article}
-\usepackage{qworld}
-\begin{document}
-$$2{latexCode}$$
-\end{document}
-`;
+      const fullLatexContent = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n$${latexCode}$\n\\end{document}\n`;
 
-      try {
-        console.log('[QWorld-Diagram] Copying qworld.sty for math...');
-        fs.copyFileSync(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
-
-        console.log(`[QWorld-Diagram] Writing temporary TeX file for math to: ${tempTexFilePath}`);
-        fs.writeFileSync(tempTexFilePath, fullLatexContent);
-
-        try {
-          console.log(`[QWorld-Diagram] Running lualatex for math on ${tempTexFilePath}...`);
-          execSync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR, stdio: 'pipe' });
-        } catch (error) {
-          console.error('[QWorld-Diagram] lualatex failed for math.');
-          const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
-          if (fs.existsSync(logPath)) {
-            const logContent = fs.readFileSync(logPath, 'utf8');
-            error.message += `\n\n--- LaTeX Log (math) ---\n${logContent}`;
-          }
-          throw error;
-        }
-
-        if (!fs.existsSync(tempPdfFilePath)) {
-          throw new Error(`lualatex finished but PDF file was not created for math at ${tempPdfFilePath}`);
-        }
-
-        try {
-          console.log(`[QWorld-Diagram] Running pdf2svg for math on ${tempPdfFilePath}...`);
-          execSync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`, { stdio: 'pipe' });
-        } catch (error) {
-          console.error('[QWorld-Diagram] pdf2svg failed for math.');
-          throw error;
-        }
-
-        console.log('[QWorld-Diagram] Generation complete for math. Inserting <img> tag.');
-        node.type = 'html';
-        node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
-
-      } catch (error) {
-        console.error('\n\n[QWorld-Diagram] >>> AN ERROR OCCURRED (math) <<<');
-        console.error(`[QWorld-Diagram] Error compiling diagram (hash: ${diagramHash}):`);
-        console.error(`STDOUT: ${error.stdout?.toString()}`);
-        console.error(`STDERR: ${error.stderr?.toString()}`);
-        console.error(`Full Error: ${error.message}`);
-        console.error('[QWorld-Diagram] >>> END OF ERROR (math) <<<');
-
-        node.type = 'html';
-        node.value = `<div style="border:2px solid red;padding:1em;background-color:#ffeeee">
-            <p style="color:red;font-weight:bold">Error rendering QWorld diagram (math).</p>
-            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>
-          </div>`;
-      } finally {
-          const filesToDelete = fs.readdirSync(TEMP_DIR).filter(file => file.startsWith(diagramHash));
-          filesToDelete.forEach(file => {
-              try {
-                  fs.unlinkSync(path.join(TEMP_DIR, file));
-              } catch (e) {
-                  // Ignore errors during cleanup
-              }
-          });
-      }
+      diagramPromises.push(
+        generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'math')
+          .then(success => {
+            if (success) {
+              node.type = 'html';
+              node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
+            } else {
+              node.type = 'html';
+              node.value = `<div style="border:2px solid red;padding:1em;background-color:#ffeeee">\n            <p style="color:red;font-weight:bold">Error rendering QWorld diagram (math).</p>\n            <p>Check the build console log for the full error message from lualatex or pdf2svg.</p>\n          </div>`;
+            }
+          })
+      );
     });
+
+    await Promise.all(diagramPromises); // Wait for all diagrams to be generated
   };
 };
