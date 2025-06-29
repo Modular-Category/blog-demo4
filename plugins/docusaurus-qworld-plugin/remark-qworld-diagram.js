@@ -231,7 +231,7 @@ module.exports = async function remarkQWorldDiagram(options) {
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
       diagramPromises.push(
-        generateDiagram(latexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, 'math', 'display')
+        generateDiagram(latexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, 'math', 'block')
           .then(success => {
             if (success) {
               node.type = 'html';
