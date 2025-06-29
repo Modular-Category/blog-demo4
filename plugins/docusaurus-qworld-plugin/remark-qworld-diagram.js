@@ -59,7 +59,8 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
   } else if (wrapType === 'display') {
     wrappedLatexCode = `$$${rawLatexCode}$$`;
   } else {  // block／math の場合
-    wrappedLatexCode = `$${rawLatexCode}$`;
+    // 何も包まず、Markdown 側の $…$ をそのまま TeX に流し込む
+    wrappedLatexCode = rawLatexCode;
   }
 
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', wrappedLatexCode);
