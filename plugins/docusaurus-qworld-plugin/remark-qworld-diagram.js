@@ -237,7 +237,7 @@ module.exports = function remarkQWorldDiagram(options) {
 \documentclass{article}
 \usepackage{qworld}
 \begin{document}
-\q{latexCode}
+$${latexCode}$$
 \end{document}
 `;
 
