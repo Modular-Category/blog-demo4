@@ -147,6 +147,7 @@ module.exports = function remarkQWorldDiagram(options) {
           console.log('[QWorld-Diagram] Found cached SVG. Skipping generation.');
           node.type = 'html';
           node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
+          delete node.children;
           return;
         }
 
@@ -184,6 +185,7 @@ module.exports = function remarkQWorldDiagram(options) {
         console.log('[QWorld-Diagram] Found cached SVG for inlineMath. Skipping generation.');
         node.type = 'html';
         node.value = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
+        delete node.children;
         return;
       }
 
@@ -221,6 +223,7 @@ module.exports = function remarkQWorldDiagram(options) {
         console.log('[QWorld-Diagram] Found cached SVG for math. Skipping generation.');
         node.type = 'html';
         node.value = `<img src="${publicPath}" alt="QWorld Diagram">`;
+        delete node.children;
         return;
       }
 
