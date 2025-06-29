@@ -171,6 +171,35 @@ module.exports = function remarkQWorldDiagram(options) {
             })
         );
       }
+
+      // ここで「MDX が math を code ノードにしたもの」を拾う
+      if (node.lang === 'math') {
+        const raw = node.value;                   // たとえば "\q{…}=…"
+        const diagramHash = crypto
+          .createHash('md5')
+          .update(raw)
+          .digest('hex');
+        const svgFileName  = `${diagramHash}.svg`;
+        const svgFilePath  = path.join(OUTPUT_SVG_DIR, svgFileName);
+        const publicPath   = path.posix.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
+
+        // キャッシュチェック
+        if (!fs.existsSync(svgFilePath)) {
+          const tmpTex = path.join(TEMP_DIR, `${diagramHash}.tex`);
+          const tmpPdf = path.join(TEMP_DIR, `${diagramHash}.pdf`);
+          diagramPromises.push(
+            generateDiagram(raw, diagramHash, svgFilePath, tmpTex, tmpPdf, 'mdx-code-math', 'display')
+          );
+        }
+        // あとで Promise 全解決後に置き換え
+        diagramPromises.push(
+          Promise.resolve().then(() => {
+            node.type     = 'html';
+            node.value    = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align:middle">`;
+            delete node.children;
+          })
+        );
+      }
     });
 
     visit(tree, 'inlineMath', (node) => {
