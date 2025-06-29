@@ -236,11 +236,10 @@ ${latexCode}$
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
       const fullLatexContent = String.raw`
-\documentclass{standalone}
-\usepackage{tikz}
+\documentclass{article}
 \usepackage{qworld}
 \begin{document}
-$${latexCode}$
+{latexCode}
 \end{document}
 `;
 
