@@ -2,10 +2,11 @@ const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs'); // Keep fs for existsSync for now, or switch to fs.promises.access
 const { exec } = require('child_process'); // Use async exec
+const { promisify } = require('util'); // ADDED: Import promisify
+const execAsync = promisify(exec); // ADDED: Promisify exec
 
 // Import promise-based versions
 const fsp = require('fs').promises;
-const child_process_promises = require('child_process').promises;
 const crypto = require('crypto'); // Import crypto module
 
 const OUTPUT_BASE_DIR = 'img/qworld-diagrams';
@@ -53,7 +54,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
   // Apply wrapping based on wrapType
   if (wrapType === 'inline') {
-    wrappedLatexCode = `$${rawLatexCode}$`;
+    wrappedLateexCode = `$${rawLatexCode}$`;
   } else if (wrapType === 'display') {
     wrappedLatexCode = `$$${rawLatexCode}$$`;
   }
@@ -70,7 +71,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
     try {
       console.log(`[QWorld-Diagram] ${logPrefix} Running lualatex on ${tempTexFilePath}...`);
-      await child_process_promises.exec(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR });
+      await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${tempTexFilePath}`, { cwd: TEMP_DIR }); // MODIFIED: Use execAsync
     } catch (error) {
       console.error(`[QWorld-Diagram] ${logPrefix} lualatex failed.`);
       const logPath = path.join(TEMP_DIR, `${diagramHash}.log`);
@@ -91,7 +92,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 
     try {
       console.log(`[QWorld-Diagram] ${logPrefix} Running pdf2svg on ${tempPdfFilePath}...`);
-      await child_process_promises.exec(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`);
+      await execAsync(`pdf2svg ${tempPdfFilePath} ${svgFilePath}`); // MODIFIED: Use execAsync
     } catch (error) {
       console.error(`[QWorld-Diagram] ${logPrefix} pdf2svg failed.`);
       throw error;
@@ -119,12 +120,12 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 }
 
 
-module.exports = async function remarkQWorldDiagram(options) { // MODIFIED: Made module.exports async
+module.exports = async function remarkQWorldDiagram(options) {
   console.log('[QWorld-Diagram] Initializing plugin.');
-  await ensureDirExists(OUTPUT_SVG_DIR); // MODIFIED: Await directory creation
-  await ensureDirExists(TEMP_DIR);       // MODIFIED: Await directory creation
+  await ensureDirExists(OUTPUT_SVG_DIR);
+  await ensureDirExists(TEMP_DIR);
 
-  return async (tree) => { // Make the main function async
+  return async (tree) => {
     console.log('[QWorld-Diagram] DEBUG: Full AST tree:', JSON.stringify(tree, null, 2));
 
     const diagramPromises = [];
