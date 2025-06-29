@@ -6,6 +6,7 @@ const { exec } = require('child_process'); // Use async exec
 // Import promise-based versions
 const fsp = require('fs').promises;
 const child_process_promises = require('child_process').promises;
+const crypto = require('crypto'); // Import crypto module
 
 const OUTPUT_BASE_DIR = 'img/qworld-diagrams';
 const OUTPUT_SVG_DIR = path.join(process.cwd(), OUTPUT_BASE_DIR);
@@ -25,19 +26,41 @@ async function ensureDirExists(dir) {
   }
 }
 
+// Base LaTeX template
+const BASE_LATEX_TEMPLATE = String.raw`
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{qworld}
+\begin{document}
+%LATEX_CODE%
+\end{document}
+`;
+
 /**
  * Generates an SVG from LaTeX code asynchronously.
- * @param {string} latexCode - The core LaTeX code to compile.
+ * @param {string} rawLatexCode - The core LaTeX code from the Markdown node.
  * @param {string} diagramHash - MD5 hash of the LaTeX code.
- * @param {string} fullLatexContent - The complete LaTeX document content including preamble and postamble.
  * @param {string} svgFilePath - Absolute path where the SVG should be saved.
  * @param {string} tempTexFilePath - Absolute path for the temporary .tex file.
  * @param {string} tempPdfFilePath - Absolute path for the temporary .pdf file.
  * @param {string} logPrefix - Prefix for console logs (e.g., "inlineMath").
+ * @param {'block' | 'inline' | 'display'} wrapType - Type of LaTeX environment to wrap the code in.
  * @returns {boolean} - True if SVG generation was successful, false otherwise.
  */
-async function generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, logPrefix = '') {
+async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, logPrefix = '', wrapType = 'block') {
   let success = false;
+  let wrappedLatexCode = rawLatexCode;
+
+  // Apply wrapping based on wrapType
+  if (wrapType === 'inline') {
+    wrappedLatexCode = `$${rawLatexCode}$`;
+  } else if (wrapType === 'display') {
+    wrappedLatexCode = `$$${rawLatexCode}$$`;
+  }
+  // For 'block' type, no additional wrapping is needed as it's assumed to be a full q{} environment.
+
+  const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', wrappedLatexCode);
+
   try {
     console.log(`[QWorld-Diagram] ${logPrefix} Copying qworld.sty...`);
     await fsp.copyFile(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
@@ -96,10 +119,10 @@ async function generateDiagram(latexCode, diagramHash, fullLatexContent, svgFile
 }
 
 
-module.exports = function remarkQWorldDiagram(options) {
+module.exports = async function remarkQWorldDiagram(options) { // MODIFIED: Made module.exports async
   console.log('[QWorld-Diagram] Initializing plugin.');
-  ensureDirExists(OUTPUT_SVG_DIR); // This will now return a Promise, but the plugin setup doesn't await it.
-  ensureDirExists(TEMP_DIR);       // This is fine for initial setup, as subsequent operations will await.
+  await ensureDirExists(OUTPUT_SVG_DIR); // MODIFIED: Await directory creation
+  await ensureDirExists(TEMP_DIR);       // MODIFIED: Await directory creation
 
   return async (tree) => { // Make the main function async
     console.log('[QWorld-Diagram] DEBUG: Full AST tree:', JSON.stringify(tree, null, 2));
@@ -113,7 +136,7 @@ module.exports = function remarkQWorldDiagram(options) {
         const diagramHash = crypto.createHash('md5').update(latexCode).digest('hex');
         const svgFileName = `${diagramHash}.svg`;
         const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
-        const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
+        const publicPath = path.posix.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
         console.log(`[QWorld-Diagram] Hash: ${diagramHash}`);
         console.log(`[QWorld-Diagram] SVG Path: ${svgFilePath}`);
@@ -131,12 +154,8 @@ module.exports = function remarkQWorldDiagram(options) {
         const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
         const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-        const latexPreamble = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n`;
-        const latexPostamble = String.raw`\n\\end{document}\n`;
-        const fullLatexContent = latexPreamble + latexCode + latexPostamble;
-
         diagramPromises.push(
-          generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'code block')
+          generateDiagram(latexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, 'code block', 'block')
             .then(success => {
               if (success) {
                 node.type = 'html';
@@ -157,7 +176,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const diagramHash = crypto.createHash('md5').update(latexCode).digest('hex');
       const svgFileName = `${diagramHash}.svg`;
       const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
-      const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
+      const publicPath = path.posix.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
       if (fs.existsSync(svgFilePath)) { // Keep synchronous check for cache for performance
         console.log('[QWorld-Diagram] Found cached SVG for inlineMath. Skipping generation.');
@@ -172,10 +191,8 @@ module.exports = function remarkQWorldDiagram(options) {
       const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-      const fullLatexContent = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n${latexCode}$\n\\end{document}\n`;
-
       diagramPromises.push(
-        generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'inlineMath')
+        generateDiagram(latexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, 'inlineMath', 'inline')
           .then(success => {
             if (success) {
               node.type = 'html';
@@ -196,7 +213,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const diagramHash = crypto.createHash('md5').update(latexCode).digest('hex');
       const svgFileName = `${diagramHash}.svg`;
       const svgFilePath = path.join(OUTPUT_SVG_DIR, svgFileName);
-      const publicPath = path.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
+      const publicPath = path.posix.join(options.baseUrl, OUTPUT_BASE_DIR, svgFileName);
 
       if (fs.existsSync(svgFilePath)) { // Keep synchronous check for cache for performance
         console.log('[QWorld-Diagram] Found cached SVG for math. Skipping generation.');
@@ -211,10 +228,8 @@ module.exports = function remarkQWorldDiagram(options) {
       const tempTexFilePath = path.join(TEMP_DIR, tempTexFileName);
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
-      const fullLatexContent = String.raw`\n\\documentclass{standalone}\n\\usepackage{tikz}\n\\usepackage{qworld}\n\\begin{document}\n$${latexCode}$\n\\end{document}\n`;
-
       diagramPromises.push(
-        generateDiagram(latexCode, diagramHash, fullLatexContent, svgFilePath, tempTexFilePath, tempPdfFilePath, 'math')
+        generateDiagram(latexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, 'math', 'display')
           .then(success => {
             if (success) {
               node.type = 'html';
@@ -227,6 +242,6 @@ module.exports = function remarkQWorldDiagram(options) {
       );
     });
 
-    await Promise.all(diagramPromises); // Wait for all diagrams to be generated
+    await Promise.all(diagramPromises);
   };
 };
