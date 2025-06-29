@@ -46,7 +46,7 @@ const BASE_LATEX_TEMPLATE = String.raw`
  * @param {string} tempPdfFilePath - Absolute path for the temporary .pdf file.
  * @param {string} logPrefix - Prefix for console logs (e.g., "inlineMath").
  * @param {'block' | 'inline' | 'display'} wrapType - Type of LaTeX environment to wrap the code in.
- * @returns {boolean} - True if SVG generation was successful, false otherwise.
+ * @returns {Promise<boolean>} - True if SVG generation was successful, false otherwise.
  */
 async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFilePath, tempPdfFilePath, logPrefix = '', wrapType = 'block') {
   let success = false;
@@ -57,7 +57,7 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
     wrappedLatexCode = `$${rawLatexCode}$`;
   } else if (wrapType === 'display') {
     wrappedLatexCode = `$$${rawLatexCode}$$`;
-  } else if (wrapType === 'block') { // ADDED: Explicitly wrap block type with $$. This ensures it's treated as display math.
+  } else if (wrapType === 'block') { // Explicitly wrap block type with $$. This ensures it's treated as display math.
     wrappedLatexCode = `$$${rawLatexCode}$$`;
   }
 
