@@ -239,7 +239,7 @@ ${latexCode}$
 \documentclass{article}
 \usepackage{qworld}
 \begin{document}
-{latexCode}
+\q{latexCode}
 \end{document}
 `;
 
