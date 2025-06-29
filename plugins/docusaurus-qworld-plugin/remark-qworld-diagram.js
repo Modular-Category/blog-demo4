@@ -49,8 +49,7 @@ module.exports = function remarkQWorldDiagram(options) {
         const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
         const latexPreamble = String.raw`
-\documentclass{standalone}
-\usepackage{tikz}
+\documentclass{article}
 \usepackage{qworld}
 \begin{document}
 `;
@@ -144,11 +143,10 @@ module.exports = function remarkQWorldDiagram(options) {
       const tempPdfFilePath = path.join(TEMP_DIR, tempPdfFileName);
 
       const fullLatexContent = String.raw`
-\documentclass{standalone}
-\usepackage{tikz}
+\documentclass{article}
 \usepackage{qworld}
 \begin{document}
-${latexCode}$
+\q{latexCode}
 \end{document}
 `;
 
