@@ -1,9 +1,10 @@
 const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs'); // Keep fs for existsSync for now, or switch to fs.promises.access
-const { exec } = require('child_process'); // Use async exec
-const { promisify } = require('util'); // Import promisify
-const execAsync = promisify(exec); // Promisify exec
+
+const { promisify } = require('util');
+const { exec } = require('child_process');
+const execAsync = promisify(exec);
 
 // Import promise-based versions
 const fsp = require('fs').promises;
@@ -57,8 +58,8 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
     wrappedLatexCode = `$${rawLatexCode}$`;
   } else if (wrapType === 'display') {
     wrappedLatexCode = `$$${rawLatexCode}$$`;
-  } else if (wrapType === 'block') { // Explicitly wrap block type with $$. This ensures it's treated as display math.
-    wrappedLatexCode = `$$${rawLatexCode}$$`;
+  } else {  // block／math の場合
+    wrappedLatexCode = rawLatexCode;
   }
 
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', wrappedLatexCode);
@@ -121,10 +122,9 @@ async function generateDiagram(rawLatexCode, diagramHash, svgFilePath, tempTexFi
 }
 
 
-module.exports = async function remarkQWorldDiagram(options) {
-  console.log('[QWorld-Diagram] Initializing plugin.');
-  await ensureDirExists(OUTPUT_SVG_DIR);
-  await ensureDirExists(TEMP_DIR);
+module.exports = function remarkQWorldDiagram(options) {
+  fs.mkdirSync(OUTPUT_SVG_DIR, { recursive: true });
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
 
   return async (tree) => {
     console.log('[QWorld-Diagram] DEBUG: Full AST tree:', JSON.stringify(tree, null, 2));
