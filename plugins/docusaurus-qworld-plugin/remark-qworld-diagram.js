@@ -37,10 +37,14 @@ async function generateDiagram(latexCode, hash) {
   const pdfFilePath = path.join(TEMP_DIR, `${hash}.pdf`);
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', latexCode);
 
+  const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
+
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
-    await fsp.copyFile(path.join(LATEX_PLUGIN_DIR, 'qworld.sty'), path.join(TEMP_DIR, 'qworld.sty'));
-    await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`, { cwd: TEMP_DIR });
+    await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`, {
+      cwd: TEMP_DIR,
+      env: { ...process.env, TEXINPUTS: texInputs },
+    });
     await execAsync(`pdf2svg ${pdfFilePath} ${svgFilePath}`);
   } catch (error) {
     console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
