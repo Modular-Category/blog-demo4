@@ -77,20 +77,16 @@ module.exports = function remarkQWorldDiagram(options) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
   return async (tree) => {
-    const promises = [];
-    const nodesToModify = [];
+    const generationTasks = [];
 
     visit(tree, ['math', 'inlineMath'], (node) => {
       const originalValue = node.value;
-      // \q{...} にマッチする正規表現
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
       if (qMatches) {
         let newValue = originalValue;
         for (const match of qMatches) {
-          // \q{ と } を取り除いて中身だけを抽出
           const latexCode = match.substring(3, match.length - 1);
-          // 中身のコードでハッシュを生成
           const hash = crypto.createHash('md5').update(latexCode).digest('hex');
           const svgFileName = `${hash}.svg`;
           const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
@@ -98,20 +94,19 @@ module.exports = function remarkQWorldDiagram(options) {
           const imgTag = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
           newValue = newValue.replace(match, imgTag);
 
-          // 中身のコードを渡してSVGを生成
-          promises.push(generateDiagram(latexCode, hash));
+          // SVG生成タスクをキューに追加
+          generationTasks.push(() => generateDiagram(latexCode, hash));
         }
         
-nodesToModify.push({ node, newValue });
+        node.type = 'html';
+        node.value = newValue;
+        delete node.children;
       }
     });
 
-    await Promise.all(promises);
-
-    for (const { node, newValue } of nodesToModify) {
-      node.type = 'html';
-      node.value = newValue;
-      delete node.children;
+    // タスクを直列に実行
+    for (const task of generationTasks) {
+      await task();
     }
   };
 };
