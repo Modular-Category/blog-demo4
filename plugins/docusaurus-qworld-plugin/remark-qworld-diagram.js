@@ -18,11 +18,7 @@ const BASE_LATEX_TEMPLATE = String.raw`
 \usepackage{tikz}
 \usepackage{qworld}
 \begin{document}
-\begin{tikzpicture}
-    \setcounter{qworldnumeros}{1}
-    \coordinate (qworldat) at (0,0);
-    %LATEX_CODE%
-\end{tikzpicture}
+%LATEX_CODE%
 \end{document}
 `;
 
@@ -84,23 +80,18 @@ module.exports = function remarkQWorldDiagram(options) {
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
       if (qMatches) {
-        let newValue = originalValue;
-        for (const match of qMatches) {
-          const latexCode = match.substring(3, match.length - 1);
-          const hash = crypto.createHash('md5').update(latexCode).digest('hex');
-          const svgFileName = `${hash}.svg`;
-          const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
-          
-          const imgTag = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
-          newValue = newValue.replace(match, imgTag);
-
-          // SVG生成タスクをキューに追加
-          generationTasks.push(() => generateDiagram(latexCode, hash));
-        }
+        const hash = crypto.createHash('md5').update(originalValue).digest('hex');
+        const svgFileName = `${hash}.svg`;
+        const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
+        
+        const imgTag = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
         
         node.type = 'html';
-        node.value = newValue;
+        node.value = imgTag;
         delete node.children;
+
+        // SVG生成タスクをキューに追加
+        generationTasks.push(() => generateDiagram(originalValue, hash));
       }
     });
 

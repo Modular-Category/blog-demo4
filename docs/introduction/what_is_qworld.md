@@ -12,7 +12,7 @@ QWorld は, モノイダル圏における図式計算を, 直感的かつ効率
 
 $$df+[f,f]=0$$
 
-$$\q{\qbox\qbraid}=\q{\qbox}^2$$
+$$\q{\qbox\qbox}=\q{\qbox}^2$$
 
 
 ## 主な特徴
