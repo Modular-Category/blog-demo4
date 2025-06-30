@@ -51,10 +51,19 @@ async function generateDiagram(latexCode, hash) {
     }
     throw error; // エラーを再スローしてビルドを失敗させる
   } finally {
-    // 一時ファイルのクリーンアップ
-    const filesToDelete = fs.readdirSync(TEMP_DIR).filter(file => file.startsWith(hash));
+    // 一時ファイルのクリーンアップ（競合状態を避ける）
+    const filesToDelete = await fsp.readdir(TEMP_DIR);
     for (const file of filesToDelete) {
-      await fsp.unlink(path.join(TEMP_DIR, file));
+      if (file.startsWith(hash)) {
+        try {
+          await fsp.unlink(path.join(TEMP_DIR, file));
+        } catch (unlinkError) {
+          if (unlinkError.code !== 'ENOENT') {
+            // ファイルが存在しないエラー以外は、念のためログに出す
+            console.error(`[QWorld-Diagram] Error cleaning up file ${file}:`, unlinkError);
+          }
+        }
+      }
     }
   }
 }
