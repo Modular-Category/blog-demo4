@@ -77,7 +77,7 @@ module.exports = function remarkQWorldDiagram(options) {
 
     visit(tree, ['math', 'inlineMath'], (node) => {
       const originalValue = node.value;
-      const qMatches = originalValue.match(/\\q\{.*?\}/g);
+      const qMatches = originalValue.match(/\\?q\{.*?\}/g);
 
       if (qMatches) {
         const latexToCompile = node.type === 'inlineMath' ? `$${originalValue.replace(/\\/g, '\\\\')}$` : `$$${originalValue.replace(/\\/g, '\\\\')}$$`;
