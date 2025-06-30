@@ -80,6 +80,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
       if (qMatches) {
+        console.log('Original Math Value:', originalValue);
         const hash = crypto.createHash('md5').update(originalValue).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
