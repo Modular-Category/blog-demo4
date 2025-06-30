@@ -80,7 +80,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
       if (qMatches) {
-        const latexToCompile = node.type === 'inlineMath' ? `${originalValue}const { visit } = require('unist-util-visit');
+        const latexToCompile = node.type === 'inlineMath' ? `${originalValue.replace(/\\/g, '\\\\')}const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
@@ -161,7 +161,7 @@ module.exports = function remarkQWorldDiagram(options) {
       const originalValue = node.value;
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
-       : `$${originalValue}$`;
+       : `$${originalValue.replace(/\\/g, '\\\\')}$`;
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
@@ -175,11 +175,3 @@ module.exports = function remarkQWorldDiagram(options) {
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
       }
-    });
-
-    // タスクを直列に実行
-    for (const task of generationTasks) {
-      await task();
-    }
-  };
-};
