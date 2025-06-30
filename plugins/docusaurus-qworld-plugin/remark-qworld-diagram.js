@@ -1,5 +1,3 @@
-
-
 const { visit } = require('unist-util-visit');
 const path = require('path');
 const fs = require('fs');
@@ -14,13 +12,17 @@ const OUTPUT_SVG_DIR = path.join(process.cwd(), OUTPUT_BASE_DIR);
 const LATEX_PLUGIN_DIR = path.join(process.cwd(), 'plugins/docusaurus-qworld-plugin/latex');
 const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
 
-// LaTeXテンプレート
+// LaTeXテンプレートを修正
 const BASE_LATEX_TEMPLATE = String.raw`
 \documentclass{standalone}
 \usepackage{tikz}
 \usepackage{qworld}
 \begin{document}
-%LATEX_CODE%
+\begin{tikzpicture}
+    \setcounter{qworldnumeros}{1}
+    \coordinate (qworldat) at (0,0);
+    %LATEX_CODE%
+\end{tikzpicture}
 \end{document}
 `;
 
@@ -45,8 +47,7 @@ async function generateDiagram(latexCode, hash) {
     const logPath = path.join(TEMP_DIR, `${hash}.log`);
     if (fs.existsSync(logPath)) {
       const logContent = await fsp.readFile(logPath, 'utf8');
-      console.error(`--- LaTeX Log (${hash}) ---
-${logContent}`);
+      console.error(`--- LaTeX Log (${hash}) ---\n${logContent}`);
     }
     throw error; // エラーを再スローしてビルドを失敗させる
   } finally {
@@ -68,20 +69,23 @@ module.exports = function remarkQWorldDiagram(options) {
 
     visit(tree, ['math', 'inlineMath'], (node) => {
       const originalValue = node.value;
+      // \q{...} にマッチする正規表現
       const qMatches = originalValue.match(/\q\{.*?\}/g);
 
       if (qMatches) {
         let newValue = originalValue;
         for (const match of qMatches) {
-          const latexCode = match;
+          // \q{ と } を取り除いて中身だけを抽出
+          const latexCode = match.substring(3, match.length - 1);
+          // 中身のコードでハッシュを生成
           const hash = crypto.createHash('md5').update(latexCode).digest('hex');
           const svgFileName = `${hash}.svg`;
-          // baseUrlを考慮した正しいパスを生成
           const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
           
           const imgTag = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
           newValue = newValue.replace(match, imgTag);
 
+          // 中身のコードを渡してSVGを生成
           promises.push(generateDiagram(latexCode, hash));
         }
         
