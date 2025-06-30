@@ -18,7 +18,11 @@ const BASE_LATEX_TEMPLATE = String.raw`
 \usepackage{tikz}
 \usepackage{qworld}
 \begin{document}
-%LATEX_CODE%
+\begin{tikzpicture}
+    \setcounter{qworldnumeros}{1}
+    \coordinate (qworldat) at (0,0);
+    %LATEX_CODE%
+\end{tikzpicture}
 \end{document}
 `;
 
