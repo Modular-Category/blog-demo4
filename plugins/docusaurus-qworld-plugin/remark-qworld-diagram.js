@@ -14,7 +14,7 @@ const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
 
 // LaTeXテンプレートを修正
 const BASE_LATEX_TEMPLATE = String.raw`
-\documentclass{standalone}
+\documentclass[varwidth]{standalone}
 \usepackage{tikz}
 \usepackage{qworld}
 \begin{document}
