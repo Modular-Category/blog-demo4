@@ -41,6 +41,26 @@ async function generateDiagram(latexCode, hash) {
   const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
   console.log('[QWorld] About to run:', luaCmd);
 
+    // ─── PDF の有無とサイズをチェック ───
+  const exists = fs.existsSync(pdfFilePath);
+  console.log(`[QWorld] Checking PDF at ${pdfFilePath}:`, exists);
+  if (exists) {
+    const stat = fs.statSync(pdfFilePath);
+    console.log(`[QWorld] PDF size (bytes):`, stat.size);
+    // 先頭数バイトを表示
+    const fd = fs.openSync(pdfFilePath, 'r');
+    const buf = Buffer.alloc(20);
+    fs.readSync(fd, buf, 0, 20, 0);
+    fs.closeSync(fd);
+    console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
+  }
+
+  // pdf2svg 実行
+  const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
+  console.log('[QWorld] About to run:', pdf2svgCmd);
+  const { stderr: svgErr } = await execAsync(pdf2svgCmd, { cwd: TEMP_DIR });
+  console.error('[QWorld] pdf2svg stderr:\n', svgErr);
+  
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
 
