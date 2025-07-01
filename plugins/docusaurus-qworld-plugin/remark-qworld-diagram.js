@@ -62,6 +62,7 @@ async function generateDiagram(latexCode, hash) {
 }
 
 module.exports = function remarkQWorldDiagram(options) {
+    console.log('[QWorld] Plugin initialized with options:', options);
   fs.mkdirSync(OUTPUT_SVG_DIR, { recursive: true });
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
