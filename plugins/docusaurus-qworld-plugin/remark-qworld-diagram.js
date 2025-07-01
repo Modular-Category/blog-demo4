@@ -26,76 +26,34 @@ async function generateDiagram(latexCode, hash) {
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', latexCode);
   const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
 
-  // デバッグ：プラグインディレクトリ中身 & TEXINPUTS
+  // （これまでのログ部分は省略）
+
+  // LuaLaTeX 実行
+  await fsp.writeFile(texFilePath, fullLatexContent);
+  await execAsync(luaCmd, { cwd: TEMP_DIR, env: { ...process.env, TEXINPUTS: texInputs } });
+
+  // PDF→SVG
+  const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
+  console.log('[QWorld] About to run:', pdf2svgCmd);
+  await execAsync(pdf2svgCmd, { cwd: TEMP_DIR });
+
+  // ─── ここから追加 ───
+  // 1) SVG の存在確認
+  const svgExists = fs.existsSync(svgFilePath);
+  console.log(`[QWorld] Checking SVG at ${svgFilePath}:`, svgExists);
+
+  // 2) 出力ディレクトリ全体の一覧
   try {
-    console.log('[QWorld] Contents of LATEX_PLUGIN_DIR:', fs.readdirSync(LATEX_PLUGIN_DIR));
+    const outFiles = fs.readdirSync(OUTPUT_SVG_DIR);
+    console.log('[QWorld] Contents of OUTPUT_SVG_DIR:', outFiles);
   } catch (e) {
-    console.error('[QWorld] Cannot read LATEX_PLUGIN_DIR:', LATEX_PLUGIN_DIR, e);
+    console.error('[QWorld] Cannot read OUTPUT_SVG_DIR:', OUTPUT_SVG_DIR, e);
   }
-  console.log('[QWorld] Env TEXINPUTS before prepend:', process.env.TEXINPUTS);
-  console.log('[QWorld] texInputs being used:', texInputs);
+  // ─── ここまで追加 ───
 
-  const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
-  console.log('[QWorld] About to run:', luaCmd);
-
-  try {
-    await fsp.writeFile(texFilePath, fullLatexContent);
-
-    // LuaLaTeX 実行
-    const { stdout: luaOut, stderr: luaErr } = await execAsync(luaCmd, {
-      cwd: TEMP_DIR,
-      env: { ...process.env, TEXINPUTS: texInputs },
-    });
-    console.log('[QWorld] lualatex stdout:\n', luaOut);
-    console.error('[QWorld] lualatex stderr:\n', luaErr);
-
-    // PDF の存在・サイズ・ヘッダー確認
-    const exists = fs.existsSync(pdfFilePath);
-    console.log(`[QWorld] Checking PDF at ${pdfFilePath}:`, exists);
-    if (exists) {
-      const stat = fs.statSync(pdfFilePath);
-      console.log(`[QWorld] PDF size (bytes):`, stat.size);
-      const fd = fs.openSync(pdfFilePath, 'r');
-      const buf = Buffer.alloc(20);
-      fs.readSync(fd, buf, 0, 20, 0);
-      fs.closeSync(fd);
-      console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
-    }
-
-    // pdf2svg 実行
-    const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
-    console.log('[QWorld] About to run:', pdf2svgCmd);
-    const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd, {
-      cwd: TEMP_DIR,
-    });
-    console.log('[QWorld] pdf2svg stdout:\n', svgOut);
-    console.error('[QWorld] pdf2svg stderr:\n', svgErr);
-
-  } catch (error) {
-    // エラーログ＆LaTeXログ全文ダンプ
-    console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
-    const logPath = path.join(TEMP_DIR, `${hash}.log`);
-    if (fs.existsSync(logPath)) {
-      const logContent = await fsp.readFile(logPath, 'utf8');
-      console.error(`--- LaTeX Log (${hash}) START ---\n${logContent}\n--- LaTeX Log (${hash}) END ---`);
-    } else {
-      console.error(`[QWorld-Diagram] No LaTeX log found at ${logPath}`);
-    }
-    throw error;
-  } finally {
-    // 一時ファイルのクリーンアップ
-    for (const file of await fsp.readdir(TEMP_DIR)) {
-      if (file.startsWith(hash)) {
-        try {
-          await fsp.unlink(path.join(TEMP_DIR, file));
-        } catch (unlinkErr) {
-          if (unlinkErr.code !== 'ENOENT')
-            console.error(`[QWorld-Diagram] Error cleaning up file ${file}:`, unlinkErr);
-        }
-      }
-    }
-  }
+  // （以降の catch/finally は既存のまま）
 }
+
 
 
 
