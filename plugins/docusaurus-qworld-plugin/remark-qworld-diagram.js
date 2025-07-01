@@ -66,12 +66,13 @@ module.exports = function remarkQWorldDiagram(options) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
   return async (tree) => {
-        console.log('[QWorld] Transform function invoked for a document');
     const generationTasks = [];
 
     visit(tree, ['math', 'inlineMath'], (node) => {
+        console.log('[QWorld] Visiting node:', node.type, JSON.stringify(node.value));
       const originalValue = node.value;
       const qMatches = originalValue.match(/\\?q\{.*?\}/g);
+              console.log('[QWorld]  → qMatches:', qMatches);
 
       if (qMatches) {
         const latexToCompile = node.type === 'inlineMath' ? `$${originalValue.replace(/\\/g, '\\\\')}$` : `$$${originalValue.replace(/\\/g, '\\\\')}$$`;
