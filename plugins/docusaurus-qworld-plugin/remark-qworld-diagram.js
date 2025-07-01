@@ -18,7 +18,7 @@ const BASE_LATEX_TEMPLATE = String.raw`
   \usepackage{amsmath}
   \usepackage{qworld}
   \begin{document}
-  %LATEX_CODE%
+  LATEX_CODE
   \end{document}`;
 
 // SVG生成関数
