@@ -18,50 +18,35 @@ const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usep
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
   const svgFilePath = path.join(OUTPUT_SVG_DIR, `${hash}.svg`);
+  // キャッシュチェック
   console.log(`[QWorld] Checking cache for ${hash}.svg → exists=`, fs.existsSync(svgFilePath));
   if (fs.existsSync(svgFilePath)) {
     return;
   }
 
+  // ファイルパスの準備
   const texFilePath = path.join(TEMP_DIR, `${hash}.tex`);
   const pdfFilePath = path.join(TEMP_DIR, `${hash}.pdf`);
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', latexCode);
   const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
 
-  // デバッグ用ログ
+  // デバッグ: プラグインディレクトリの中身
   try {
     const files = fs.readdirSync(LATEX_PLUGIN_DIR);
     console.log('[QWorld] Contents of LATEX_PLUGIN_DIR:', files);
   } catch (e) {
     console.error('[QWorld] Cannot read LATEX_PLUGIN_DIR:', LATEX_PLUGIN_DIR, e);
   }
+  // デバッグ: TEXINPUTS 環境
   console.log('[QWorld] Env TEXINPUTS before prepend:', process.env.TEXINPUTS);
   console.log('[QWorld] texInputs being used:', texInputs);
 
+  // LuaLaTeX コマンド
   const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
   console.log('[QWorld] About to run:', luaCmd);
 
-    // ─── PDF の有無とサイズをチェック ───
-  const exists = fs.existsSync(pdfFilePath);
-  console.log(`[QWorld] Checking PDF at ${pdfFilePath}:`, exists);
-  if (exists) {
-    const stat = fs.statSync(pdfFilePath);
-    console.log(`[QWorld] PDF size (bytes):`, stat.size);
-    // 先頭数バイトを表示
-    const fd = fs.openSync(pdfFilePath, 'r');
-    const buf = Buffer.alloc(20);
-    fs.readSync(fd, buf, 0, 20, 0);
-    fs.closeSync(fd);
-    console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
-  }
-
-  // pdf2svg 実行
-  const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
-  console.log('[QWorld] About to run:', pdf2svgCmd);
-  const { stderr: svgErr } = await execAsync(pdf2svgCmd, { cwd: TEMP_DIR });
-  console.error('[QWorld] pdf2svg stderr:\n', svgErr);
-  
   try {
+    // .tex 書き出し
     await fsp.writeFile(texFilePath, fullLatexContent);
 
     // LuaLaTeX 実行
@@ -72,11 +57,18 @@ async function generateDiagram(latexCode, hash) {
     console.log('[QWorld] lualatex stdout:\n', luaOut);
     console.error('[QWorld] lualatex stderr:\n', luaErr);
 
-    // ─── PDF の有無をチェック ───
-    console.log(
-      `[QWorld] Checking PDF at ${pdfFilePath}:`,
-      fs.existsSync(pdfFilePath)
-    );
+    // PDF の存在・サイズ・ヘッダをチェック
+    const exists = fs.existsSync(pdfFilePath);
+    console.log(`[QWorld] Checking PDF at ${pdfFilePath}:`, exists);
+    if (exists) {
+      const stat = fs.statSync(pdfFilePath);
+      console.log(`[QWorld] PDF size (bytes):`, stat.size);
+      const fd = fs.openSync(pdfFilePath, 'r');
+      const buf = Buffer.alloc(20);
+      fs.readSync(fd, buf, 0, 20, 0);
+      fs.closeSync(fd);
+      console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
+    }
 
     // pdf2svg で SVG 化
     const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
@@ -88,6 +80,7 @@ async function generateDiagram(latexCode, hash) {
     console.error('[QWorld] pdf2svg stderr:\n', svgErr);
 
   } catch (error) {
+    // エラーハンドリング
     console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
     const logPath = path.join(TEMP_DIR, `${hash}.log`);
     if (fs.existsSync(logPath)) {
@@ -96,6 +89,7 @@ async function generateDiagram(latexCode, hash) {
     }
     throw error;
   } finally {
+    // 一時ファイルのクリーンアップ
     const filesToDelete = await fsp.readdir(TEMP_DIR);
     for (const file of filesToDelete) {
       if (file.startsWith(hash)) {
@@ -110,6 +104,7 @@ async function generateDiagram(latexCode, hash) {
     }
   }
 }
+
 
 module.exports = function remarkQWorldDiagram(options) {
   fs.mkdirSync(OUTPUT_SVG_DIR, { recursive: true });
