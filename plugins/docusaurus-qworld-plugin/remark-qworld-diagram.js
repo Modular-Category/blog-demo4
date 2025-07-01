@@ -44,7 +44,7 @@ async function generateDiagram(latexCode, hash) {
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
 
-    // lualatex の出力をキャプチャ
+    // LuaLaTeX 実行
     const { stdout: luaOut, stderr: luaErr } = await execAsync(luaCmd, {
       cwd: TEMP_DIR,
       env: { ...process.env, TEXINPUTS: texInputs },
@@ -52,10 +52,18 @@ async function generateDiagram(latexCode, hash) {
     console.log('[QWorld] lualatex stdout:\n', luaOut);
     console.error('[QWorld] lualatex stderr:\n', luaErr);
 
-    // pdf2svg の出力もキャプチャ
+    // ─── PDF の有無をチェック ───
+    console.log(
+      `[QWorld] Checking PDF at ${pdfFilePath}:`,
+      fs.existsSync(pdfFilePath)
+    );
+
+    // pdf2svg で SVG 化
     const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
     console.log('[QWorld] About to run:', pdf2svgCmd);
-    const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd);
+    const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd, {
+      cwd: TEMP_DIR,
+    });
     console.log('[QWorld] pdf2svg stdout:\n', svgOut);
     console.error('[QWorld] pdf2svg stderr:\n', svgErr);
 
