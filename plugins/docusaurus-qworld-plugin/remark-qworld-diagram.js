@@ -14,13 +14,12 @@ const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
 
 // LaTeXテンプレートを修正
 const BASE_LATEX_TEMPLATE = String.raw`
-\documentclass[varwidth]{standalone}
-\usepackage{amsmath}
-\usepackage{qworld}
-\begin{document}
-%LATEX_CODE%
-\end{document}
-`;
+  \documentclass[varwidth]{standalone}
+  \usepackage{amsmath}
+  \usepackage{qworld}
+  \begin{document}
+  %LATEX_CODE%
+  \end{document}`;
 
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
