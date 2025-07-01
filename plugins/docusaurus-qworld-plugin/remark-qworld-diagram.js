@@ -86,6 +86,7 @@ module.exports = function remarkQWorldDiagram(options) {
         node.value = imgTag;
         delete node.children;
 
+          console.log(`[QWorld] Queueing diagram generation: hash=${hash}, code=${latexToCompile}`);
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
       }
