@@ -20,16 +20,15 @@ async function generateDiagram(latexCode, hash) {
   const svgFilePath = path.join(OUTPUT_SVG_DIR, `${hash}.svg`);
   console.log(`[QWorld] Checking cache for ${hash}.svg → exists=`, fs.existsSync(svgFilePath));
   if (fs.existsSync(svgFilePath)) {
-    return; // キャッシュがあれば何もしない
+    return;
   }
 
   const texFilePath = path.join(TEMP_DIR, `${hash}.tex`);
   const pdfFilePath = path.join(TEMP_DIR, `${hash}.pdf`);
   const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', latexCode);
-
   const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
 
-   // ─── デバッグ用ログ ───
+  // デバッグ用ログ
   try {
     const files = fs.readdirSync(LATEX_PLUGIN_DIR);
     console.log('[QWorld] Contents of LATEX_PLUGIN_DIR:', files);
@@ -41,15 +40,25 @@ async function generateDiagram(latexCode, hash) {
 
   const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
   console.log('[QWorld] About to run:', luaCmd);
-  // ─── ここまでログ ───
-  
+
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
-    await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`, {
+
+    // lualatex の出力をキャプチャ
+    const { stdout: luaOut, stderr: luaErr } = await execAsync(luaCmd, {
       cwd: TEMP_DIR,
       env: { ...process.env, TEXINPUTS: texInputs },
     });
-    await execAsync(`pdf2svg ${pdfFilePath} ${svgFilePath}`);
+    console.log('[QWorld] lualatex stdout:\n', luaOut);
+    console.error('[QWorld] lualatex stderr:\n', luaErr);
+
+    // pdf2svg の出力もキャプチャ
+    const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
+    console.log('[QWorld] About to run:', pdf2svgCmd);
+    const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd);
+    console.log('[QWorld] pdf2svg stdout:\n', svgOut);
+    console.error('[QWorld] pdf2svg stderr:\n', svgErr);
+
   } catch (error) {
     console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
     const logPath = path.join(TEMP_DIR, `${hash}.log`);
@@ -57,9 +66,8 @@ async function generateDiagram(latexCode, hash) {
       const logContent = await fsp.readFile(logPath, 'utf8');
       console.error(`--- LaTeX Log (${hash}) ---\n${logContent}`);
     }
-    throw error; // エラーを再スローしてビルドを失敗させる
+    throw error;
   } finally {
-    // 一時ファイルのクリーンアップ（競合状態を避ける）
     const filesToDelete = await fsp.readdir(TEMP_DIR);
     for (const file of filesToDelete) {
       if (file.startsWith(hash)) {
@@ -67,7 +75,6 @@ async function generateDiagram(latexCode, hash) {
           await fsp.unlink(path.join(TEMP_DIR, file));
         } catch (unlinkError) {
           if (unlinkError.code !== 'ENOENT') {
-            // ファイルが存在しないエラー以外は、念のためログに出す
             console.error(`[QWorld-Diagram] Error cleaning up file ${file}:`, unlinkError);
           }
         }
