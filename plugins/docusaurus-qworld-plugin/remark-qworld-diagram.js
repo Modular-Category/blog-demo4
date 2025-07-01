@@ -29,6 +29,20 @@ async function generateDiagram(latexCode, hash) {
 
   const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
 
+   // ─── デバッグ用ログ ───
+  try {
+    const files = fs.readdirSync(LATEX_PLUGIN_DIR);
+    console.log('[QWorld] Contents of LATEX_PLUGIN_DIR:', files);
+  } catch (e) {
+    console.error('[QWorld] Cannot read LATEX_PLUGIN_DIR:', LATEX_PLUGIN_DIR, e);
+  }
+  console.log('[QWorld] Env TEXINPUTS before prepend:', process.env.TEXINPUTS);
+  console.log('[QWorld] texInputs being used:', texInputs);
+
+  const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
+  console.log('[QWorld] About to run:', luaCmd);
+  // ─── ここまでログ ───
+  
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
     await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`, {
