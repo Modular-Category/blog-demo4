@@ -17,7 +17,6 @@ const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usep
 
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
-    console.log(`[QWorld] generateDiagram called for hash=${hash}`);
   const svgFilePath = path.join(OUTPUT_SVG_DIR, `${hash}.svg`);
   if (fs.existsSync(svgFilePath)) {
     return; // キャッシュがあれば何もしない
@@ -31,10 +30,13 @@ async function generateDiagram(latexCode, hash) {
 
   try {
     await fsp.writeFile(texFilePath, fullLatexContent);
+    console.log('[QWorld] Running lualatex with TEXINPUTS=', texInputs);
+    console.log('[QWorld] Command:', `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`);
     await execAsync(`lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`, {
       cwd: TEMP_DIR,
       env: { ...process.env, TEXINPUTS: texInputs },
     });
+    console.log('[QWorld] lualatex succeeded for', hash);
     await execAsync(`pdf2svg ${pdfFilePath} ${svgFilePath}`);
   } catch (error) {
     console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
