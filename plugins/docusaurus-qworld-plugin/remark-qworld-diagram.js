@@ -17,6 +17,7 @@ const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usep
 
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
+    console.log(`[QWorld] generateDiagram called for hash=${hash}`);
   const svgFilePath = path.join(OUTPUT_SVG_DIR, `${hash}.svg`);
   if (fs.existsSync(svgFilePath)) {
     return; // キャッシュがあれば何もしない
@@ -69,10 +70,8 @@ module.exports = function remarkQWorldDiagram(options) {
     const generationTasks = [];
 
     visit(tree, ['math', 'inlineMath'], (node) => {
-        console.log('[QWorld] Visiting node:', node.type, JSON.stringify(node.value));
       const originalValue = node.value;
       const qMatches = originalValue.match(/\\?q\{.*?\}/g);
-              console.log('[QWorld]  → qMatches:', qMatches);
 
       if (qMatches) {
         const latexToCompile = node.type === 'inlineMath' ? `$${originalValue.replace(/\\/g, '\\\\')}$` : `$$${originalValue.replace(/\\/g, '\\\\')}$$`;
@@ -86,7 +85,6 @@ module.exports = function remarkQWorldDiagram(options) {
         node.value = imgTag;
         delete node.children;
 
-          console.log(`[QWorld] Queueing diagram generation: hash=${hash}, code=${latexToCompile}`);
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
       }
