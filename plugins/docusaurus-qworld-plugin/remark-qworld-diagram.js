@@ -151,6 +151,7 @@ module.exports = function remarkQWorldDiagram(options) {
       if (node.type === 'code' && node.lang === 'qworld') {
         const escapedNodeValue = node.value.trim().replace(/\\/g, '\\\\');
         const latexToCompile = String.raw`\q{${escapedNodeValue}}`;
+        console.log(`[QWorld-Debug] LaTeX for code block: ${latexToCompile}`);
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
@@ -175,7 +176,7 @@ module.exports = function remarkQWorldDiagram(options) {
           }
 
           const latexCode = match[1].trim().replace(/\\/g, '\\\\');
-          const latexToCompile = String.raw`\\q{${latexCode}}`;
+          const latexToCompile = String.raw`\q{${latexCode}}`;          console.log(`[QWorld-Debug] LaTeX for inline: ${latexToCompile}`);
           const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
           const svgFileName = `${hash}.svg`;
           const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
