@@ -50,8 +50,8 @@ const config = {
           editUrl:
             'https://github.com/Modular-Category/blog-demo4/tree/main/',
           remarkPlugins: [
-            require('remark-math'),
             [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: BASE_URL }],
+            require('remark-math'),
           ],
           rehypePlugins: [require('rehype-katex')],
         },

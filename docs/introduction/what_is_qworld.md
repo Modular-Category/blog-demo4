@@ -13,7 +13,7 @@ QWorld は, モノイダル圏における図式計算を, 直感的かつ効率
 $$df+[f,f]=0$$
 
 ```qworld
-\q{\qbraid}
+\q[scale=5]{\qbraid}
 ```
 
 

@@ -129,8 +129,8 @@ module.exports = function remarkQWorldDiagram(options) {
   return async (tree) => {
     const generationTasks = [];
 
-    visit(tree, 'code', (node) => {
-      if (node.lang === 'qworld') {
+    visit(tree, ['code', 'text'], (node) => {
+      if (node.type === 'code' && node.lang === 'qworld') {
         const escapedNodeValue = node.value.trim().replace(/\\/g, '\\\\');
         const latexToCompile = String.raw`\q{${escapedNodeValue}}`;
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
@@ -145,6 +145,41 @@ module.exports = function remarkQWorldDiagram(options) {
 
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
+      } else if (node.type === 'text') {
+        const qworldRegex = /```qworld\n([\\s\\S]*?)\n```/g;
+        let match;
+        let lastIndex = 0;
+        const newChildren = [];
+
+        while ((match = qworldRegex.exec(node.value)) !== null) {
+          if (match.index > lastIndex) {
+            newChildren.push({ type: 'text', value: node.value.substring(lastIndex, match.index) });
+          }
+
+          const latexCode = match[1].trim().replace(/\\/g, '\\\\');
+          const latexToCompile = String.raw`\q{${latexCode}}`;
+          const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
+          const svgFileName = `${hash}.svg`;
+          const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
+
+          newChildren.push({
+            type: 'image',
+            url: publicPath,
+            alt: 'QWorld Diagram',
+          });
+
+          generationTasks.push(() => generateDiagram(latexToCompile, hash));
+          lastIndex = qworldRegex.lastIndex;
+        }
+
+        if (lastIndex < node.value.length) {
+          newChildren.push({ type: 'text', value: node.value.substring(lastIndex) });
+        }
+
+        if (newChildren.length > 0) {
+          node.type = 'paragraph'; // 親ノードを段落に変換
+          node.children = newChildren;
+        }
       }
     });
 
