@@ -13,7 +13,7 @@ const LATEX_PLUGIN_DIR = path.join(process.cwd(), 'plugins/docusaurus-qworld-plu
 const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
 
 // LaTeXテンプレートを修正
-const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usepackage{amsmath}\RequirePackage{qworld}\begin{document}%LATEX_CODE%\end{document}`;
+const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usepackage{amsmath}\usepackage{varwidth}\RequirePackage{qworld}\begin{document}%LATEX_CODE%\end{document}`;
 
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
