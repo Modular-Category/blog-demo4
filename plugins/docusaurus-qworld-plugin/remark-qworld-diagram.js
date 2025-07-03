@@ -131,7 +131,7 @@ module.exports = function remarkQWorldDiagram(options) {
 
     visit(tree, 'code', (node) => {
       if (node.lang === 'qworld') {
-        const latexToCompile = `\[\q{${node.value.trim()}}\]`;
+        const latexToCompile = `\q{${node.value.trim()}}`;
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
