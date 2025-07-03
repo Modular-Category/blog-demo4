@@ -163,6 +163,40 @@ module.exports = function remarkQWorldDiagram(options) {
 
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
+      } else if (node.type === 'text') {
+        const inlineQworldRegex = /\\q\{([\\s\\S]*?)\}/g;
+        let match;
+        let lastIndex = 0;
+        const newNodes = [];
+
+        while ((match = inlineQworldRegex.exec(node.value)) !== null) {
+          if (match.index > lastIndex) {
+            newNodes.push({ type: 'text', value: node.value.substring(lastIndex, match.index) });
+          }
+
+          const latexCode = match[1].trim().replace(/\\/g, '\\\\');
+          const latexToCompile = String.raw`\\q{${latexCode}}`;
+          const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
+          const svgFileName = `${hash}.svg`;
+          const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
+
+          newNodes.push({
+            type: 'image',
+            url: publicPath,
+            alt: 'QWorld Diagram',
+          });
+
+          generationTasks.push(() => generateDiagram(latexToCompile, hash));
+          lastIndex = inlineQworldRegex.lastIndex;
+        }
+
+        if (lastIndex < node.value.length) {
+          newNodes.push({ type: 'text', value: node.value.substring(lastIndex) });
+        }
+
+        if (newNodes.length > 0) {
+          return newNodes;
+        }
       }
     });
 
