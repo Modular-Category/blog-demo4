@@ -131,15 +131,17 @@ module.exports = function remarkQWorldDiagram(options) {
 
     visit(tree, 'code', (node) => {
       if (node.lang === 'qworld') {
-        const latexToCompile = `\q{${node.value.trim()}}`;
+        const escapedNodeValue = node.value.trim().replace(/\\/g, '\\\\');
+        const latexToCompile = String.raw`\q{${escapedNodeValue}}`;
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
         
-        const imgTag = `<img src="${publicPath}" alt="QWorld Diagram" style="vertical-align: middle;">`;
-        
-        node.type = 'html';
-        node.value = imgTag;
+        node.type = 'image';
+        node.url = publicPath;
+        node.alt = 'QWorld Diagram';
+        delete node.children;
+        delete node.value;
 
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
