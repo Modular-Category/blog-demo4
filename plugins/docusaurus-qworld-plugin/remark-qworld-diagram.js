@@ -129,12 +129,9 @@ module.exports = function remarkQWorldDiagram(options) {
   return async (tree) => {
     const generationTasks = [];
 
-    visit(tree, ['math', 'inlineMath'], (node) => {
-      const originalValue = node.value;
-      const qMatches = originalValue.match(/\\?q\{.*?\}/g);
-
-      if (qMatches) {
-        const latexToCompile = node.type === 'inlineMath' ? `$${originalValue.replace(/\\/g, '\\\\')}$` : `$$${originalValue.replace(/\\/g, '\\\\')}$$`;
+    visit(tree, 'code', (node) => {
+      if (node.lang === 'qworld') {
+        const latexToCompile = `\[\q{${node.value.trim()}}\]`;
         const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
         const svgFileName = `${hash}.svg`;
         const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
@@ -143,7 +140,6 @@ module.exports = function remarkQWorldDiagram(options) {
         
         node.type = 'html';
         node.value = imgTag;
-        delete node.children;
 
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
