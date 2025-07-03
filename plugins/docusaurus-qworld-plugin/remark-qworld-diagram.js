@@ -69,9 +69,27 @@ async function generateDiagram(latexCode, hash) {
       console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
     }
 
-    // 8. PDF→SVG 変換
-    const pdf2svgCmd = `pdf2svg ${pdfFilePath} ${svgFilePath}`;
-    console.log('[QWorld] About to run:', pdf2svgCmd);
+    // 8. PDFのBoundingBoxをログから取得し、gsでクロップ
+    const logPath = path.join(TEMP_DIR, `${hash}.log`);
+    const logContent = await fsp.readFile(logPath, 'utf8');
+    const bboxMatch = logContent.match(/%%BoundingBox: (\d+) (\d+) (\d+) (\d+)/);
+
+    let croppedPdfFilePath = pdfFilePath;
+    if (bboxMatch) {
+      const [, x1, y1, x2, y2] = bboxMatch;
+      const gsCmd = `gs -o ${TEMP_DIR}/${hash}-cropped.pdf -sDEVICE=pdfwrite -dUseCropBox -dPDFFitPage -c "[/CropBox [${x1} ${y1} ${x2} ${y2}] /PZ 1 def] setpagedevice" -f ${pdfFilePath}`;
+      console.log('[QWorld] About to run gs for cropping:', gsCmd);
+      const { stdout: gsOut, stderr: gsErr } = await execAsync(gsCmd, { cwd: TEMP_DIR });
+      console.log('[QWorld] gs stdout:\n', gsOut);
+      console.error('[QWorld] gs stderr:\n', gsErr);
+      croppedPdfFilePath = `${TEMP_DIR}/${hash}-cropped.pdf`;
+    } else {
+      console.warn(`[QWorld] BoundingBox not found in log for ${hash}.pdf. Skipping cropping.`);
+    }
+
+    // 9. クロップされたPDFをSVGに変換
+    const pdf2svgCmd = `pdf2svg ${croppedPdfFilePath} ${svgFilePath}`;
+    console.log('[QWorld] About to run pdf2svg:', pdf2svgCmd);
     const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd, {
       cwd: TEMP_DIR,
     });
