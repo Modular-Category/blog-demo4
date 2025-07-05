@@ -15,6 +15,7 @@ tlmgr install qworld
 ```
 
 アップデートがある場合は、以下のコマンドで更新できます。
+
 ```bash
 tlmgr update qworld
 ```
@@ -47,3 +48,4 @@ MiKTeXを利用している場合、パッケージは通常、`\usepackage{qwor
 
 ```latex
 \usepackage{qworld}
+```

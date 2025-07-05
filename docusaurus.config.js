@@ -1,67 +1,68 @@
 // Note: type annotations allow type checking and IDEs autocompletion
 
-import {themes} from 'prism-react-renderer';
-const path = require('path');
+import { themes } from "prism-react-renderer";
+const path = require("path");
 
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
 
-const BASE_URL = '/blog-demo4/'; // ★ あなたのリポジトリ名に置き換える
+const BASE_URL = "/blog-demo4/"; // ★ あなたのリポジトリ名に置き換える
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'QWorld',
-  tagline: 'モノイダル圏のための直感的な LaTeX 図式計算パッケージ',
+  title: "QWorld",
+  tagline: "モノイダル圏のための直感的な LaTeX 図式計算パッケージ",
   // highlight-start
-  url: 'https://Modular-Category.github.io', // ★ あなたのGitHubユーザー名に置き換える
+  url: "https://Modular-Category.github.io", // ★ あなたのGitHubユーザー名に置き換える
   baseUrl: BASE_URL, // ★ あなたのリポジトリ名に置き換える
   // highlight-end
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "warn",
+  favicon: "img/favicon.ico",
 
   // GitHub pages deployment config.
   // highlight-start
-  organizationName: 'Modular-Category', // ★ あなたのGitHubユーザー名
-  projectName: 'blog-demo4', // ★ あなたのリポジトリ名
+  organizationName: "Modular-Category", // ★ あなたのGitHubユーザー名
+  projectName: "blog-demo4", // ★ あなたのリポジトリ名
   // highlight-end
 
   i18n: {
-    defaultLocale: 'ja',
-    locales: ['ja', 'en'],
+    defaultLocale: "ja",
+    locales: ["ja", "en"],
   },
 
   stylesheets: [
     {
-      href: 'https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css',
-      type: 'text/css',
-      crossorigin: 'anonymous',
+      href: "https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css",
+      type: "text/css",
+      crossorigin: "anonymous",
     },
   ],
-  
+
   // ...（以下の設定は変更なし）...
   presets: [
     [
-      'classic',
+      "classic",
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl:
-            'https://github.com/Modular-Category/blog-demo4/tree/main/',
+          sidebarPath: require.resolve("./sidebars.js"),
+          editUrl: "https://github.com/Modular-Category/blog-demo4/tree/main/",
           remarkPlugins: [
-            [require('./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js'), { baseUrl: BASE_URL }],
-            require('remark-math'),
+            [
+              require("./plugins/docusaurus-qworld-plugin/remark-qworld-diagram.js"),
+              { baseUrl: BASE_URL },
+            ],
+            require("remark-math"),
           ],
-          rehypePlugins: [require('rehype-katex')],
+          rehypePlugins: [require("rehype-katex")],
         },
         blog: {
           showReadingTime: true,
-          editUrl:
-            'https://github.com/Modular-Category/blog-demo4/tree/main/',
+          editUrl: "https://github.com/Modular-Category/blog-demo4/tree/main/",
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve("./src/css/custom.css"),
         },
       }),
     ],
@@ -73,9 +74,6 @@ const config = {
       // CSSのミニファイを無効化
       minifyCss: false,
     }),
-  
 };
 
 module.exports = config;
-
-

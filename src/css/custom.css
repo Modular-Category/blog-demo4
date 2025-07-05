@@ -14,7 +14,7 @@
   --ifm-color-primary-light: #3d35b4;
   --ifm-color-primary-lighter: #4239bb;
   --ifm-color-primary-lightest: #5447d5;
-  
+
   /* フォントサイズ */
   --ifm-font-size-base: 100%; /* 16px */
 
@@ -24,15 +24,17 @@
 
   /* 影 */
   --ifm-global-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --ifm-global-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --ifm-global-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --ifm-global-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --ifm-global-shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
   /* カードのスタイル */
   --ifm-card-border-radius: 0.75rem;
 }
 
 /* ダークモード用の変数を上書き */
-[data-theme='dark'] {
+[data-theme="dark"] {
   --ifm-color-primary: #818cf8; /* メインカラー: 明るいインディゴ */
   --ifm-color-primary-dark: #6e79f6;
   --ifm-color-primary-darker: #6570f5;
@@ -44,15 +46,15 @@
 
 /* 再利用可能なカードコンポーネントのスタイル */
 .card-style {
-    background-color: var(--ifm-card-background-color);
-    border-radius: var(--ifm-card-border-radius);
-    box-shadow: var(--ifm-global-shadow-md);
-    transition: all 0.3s ease-in-out;
-    padding: var(--ifm-spacing-horizontal);
-    margin-bottom: var(--ifm-spacing-horizontal);
+  background-color: var(--ifm-card-background-color);
+  border-radius: var(--ifm-card-border-radius);
+  box-shadow: var(--ifm-global-shadow-md);
+  transition: all 0.3s ease-in-out;
+  padding: var(--ifm-spacing-horizontal);
+  margin-bottom: var(--ifm-spacing-horizontal);
 }
 
 .card-style:hover {
-    box-shadow: var(--ifm-global-shadow-lg);
-    transform: translateY(-5px);
+  box-shadow: var(--ifm-global-shadow-lg);
+  transform: translateY(-5px);
 }

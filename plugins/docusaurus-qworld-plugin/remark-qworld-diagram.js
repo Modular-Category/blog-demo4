@@ -1,25 +1,66 @@
-const { visit } = require('unist-util-visit');
-const path = require('path');
-const fs = require('fs');
-const { promisify } = require('util');
-const { exec } = require('child_process');
+const { visit } = require("unist-util-visit");
+const path = require("path");
+const fs = require("fs");
+const { promisify } = require("util");
+const { exec } = require("child_process");
 const execAsync = promisify(exec);
-const fsp = require('fs').promises;
-const crypto = require('crypto');
+const fsp = require("fs").promises;
+const crypto = require("crypto");
 
-const OUTPUT_BASE_DIR = 'static/img/qworld-diagrams';
+const OUTPUT_BASE_DIR = "static/img/qworld-diagrams";
 const OUTPUT_SVG_DIR = path.join(process.cwd(), OUTPUT_BASE_DIR);
-const LATEX_PLUGIN_DIR = path.join(process.cwd(), 'plugins/docusaurus-qworld-plugin/latex');
-const TEMP_DIR = path.join(process.cwd(), '.qworld-temp');
+const LATEX_PLUGIN_DIR = path.join(
+  process.cwd(),
+  "plugins/docusaurus-qworld-plugin/latex",
+);
+const TEMP_DIR = path.join(process.cwd(), ".qworld-temp");
 
 // LaTeXテンプレートを修正
-const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth]{standalone}\usepackage{amsmath}\usepackage{varwidth}\RequirePackage{qworld}\begin{document}%LATEX_CODE%\end{document}`;
+const BASE_LATEX_TEMPLATE = String.raw`\documentclass[varwidth, border=1pt]{standalone}\usepackage{amsmath}\usepackage{varwidth}\RequirePackage{qworld}\begin{document}%LATEX_CODE%\end{document}`;
+
+async function cleanupTempFiles(hash, tempDir) {
+  try {
+    const filesToDelete = await fsp.readdir(tempDir);
+    for (const file of filesToDelete) {
+      if (file.startsWith(hash)) {
+        const filePath = path.join(tempDir, file);
+        for (let i = 0; i < 5; i++) {
+          // Retry up to 5 times
+          try {
+            await fsp.unlink(filePath);
+            break; // Success
+          } catch (unlinkError) {
+            if (unlinkError.code === "EBUSY" && i < 4) {
+              await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms
+            } else if (unlinkError.code === "ENOENT") {
+              break; // File already gone
+            } else {
+              console.error(
+                `[QWorld-Diagram] Error cleaning up file ${file}:`,
+                unlinkError,
+              );
+              break;
+            }
+          }
+        }
+      }
+    }
+  } catch (readdirError) {
+    console.error(
+      `[QWorld-Diagram] Error reading temp directory for cleanup:`,
+      readdirError,
+    );
+  }
+}
 
 // SVG生成関数
 async function generateDiagram(latexCode, hash) {
   const svgFilePath = path.join(OUTPUT_SVG_DIR, `${hash}.svg`);
   // 1. キャッシュチェック
-  console.log(`[QWorld] Checking cache for ${hash}.svg → exists=`, fs.existsSync(svgFilePath));
+  console.log(
+    `[QWorld] Checking cache for ${hash}.svg → exists=`,
+    fs.existsSync(svgFilePath),
+  );
   if (fs.existsSync(svgFilePath)) {
     return;
   }
@@ -27,22 +68,29 @@ async function generateDiagram(latexCode, hash) {
   // 2. ファイルパス準備
   const texFilePath = path.join(TEMP_DIR, `${hash}.tex`);
   const pdfFilePath = path.join(TEMP_DIR, `${hash}.pdf`);
-  const fullLatexContent = BASE_LATEX_TEMPLATE.replace('%LATEX_CODE%', latexCode);
-  const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ''}`;
+  const fullLatexContent = BASE_LATEX_TEMPLATE.replace(
+    "%LATEX_CODE%",
+    latexCode,
+  );
+  const texInputs = `${LATEX_PLUGIN_DIR}${path.delimiter}${process.env.TEXINPUTS || ""}`;
 
   // 3. デバッグ: プラグインディレクトリと環境変数
   try {
     const files = fs.readdirSync(LATEX_PLUGIN_DIR);
-    console.log('[QWorld] Contents of LATEX_PLUGIN_DIR:', files);
+    console.log("[QWorld] Contents of LATEX_PLUGIN_DIR:", files);
   } catch (e) {
-    console.error('[QWorld] Cannot read LATEX_PLUGIN_DIR:', LATEX_PLUGIN_DIR, e);
+    console.error(
+      "[QWorld] Cannot read LATEX_PLUGIN_DIR:",
+      LATEX_PLUGIN_DIR,
+      e,
+    );
   }
-  console.log('[QWorld] Env TEXINPUTS before prepend:', process.env.TEXINPUTS);
-  console.log('[QWorld] texInputs being used:', texInputs);
+  console.log("[QWorld] Env TEXINPUTS before prepend:", process.env.TEXINPUTS);
+  console.log("[QWorld] texInputs being used:", texInputs);
 
   // 4. LuaLaTeX 実行コマンド
   const luaCmd = `lualatex -output-directory=${TEMP_DIR} -interaction=nonstopmode -halt-on-error ${texFilePath}`;
-  console.log('[QWorld] About to run:', luaCmd);
+  console.log("[QWorld] About to run:", luaCmd);
 
   try {
     // 5. .tex ファイルを書き出し
@@ -53,8 +101,8 @@ async function generateDiagram(latexCode, hash) {
       cwd: TEMP_DIR,
       env: { ...process.env, TEXINPUTS: texInputs },
     });
-    console.log('[QWorld] lualatex stdout:\n', luaOut);
-    console.error('[QWorld] lualatex stderr:\n', luaErr);
+    console.log("[QWorld] lualatex stdout:\n", luaOut);
+    console.error("[QWorld] lualatex stderr:\n", luaErr);
 
     // 7. PDF の存在・サイズ・ヘッダー確認
     const exists = fs.existsSync(pdfFilePath);
@@ -62,83 +110,76 @@ async function generateDiagram(latexCode, hash) {
     if (exists) {
       const stat = fs.statSync(pdfFilePath);
       console.log(`[QWorld] PDF size (bytes):`, stat.size);
-      const fd = fs.openSync(pdfFilePath, 'r');
+      const fd = fs.openSync(pdfFilePath, "r");
       const buf = Buffer.alloc(20);
       fs.readSync(fd, buf, 0, 20, 0);
       fs.closeSync(fd);
-      console.log('[QWorld] PDF header bytes:', buf.toString('utf8'));
+      console.log("[QWorld] PDF header bytes:", buf.toString("utf8"));
     }
 
     // 8. PDFのBoundingBoxをログから取得し、gsでクロップ
     const logPath = path.join(TEMP_DIR, `${hash}.log`);
-    const logContent = await fsp.readFile(logPath, 'utf8');
-    const bboxMatch = logContent.match(/%%BoundingBox: (\d+) (\d+) (\d+) (\d+)/);
+    const logContent = await fsp.readFile(logPath, "utf8");
+    const bboxMatch = logContent.match(
+      /%%BoundingBox: (\d+) (\d+) (\d+) (\d+)/,
+    );
 
     let croppedPdfFilePath = pdfFilePath;
     if (bboxMatch) {
       const [, x1, y1, x2, y2] = bboxMatch;
       const gsCmd = `gs -o ${TEMP_DIR}/${hash}-cropped.pdf -sDEVICE=pdfwrite -dUseCropBox -dPDFFitPage -c "[/CropBox [${x1} ${y1} ${x2} ${y2}] /PZ 1 def] setpagedevice" -f ${pdfFilePath}`;
-      console.log('[QWorld] About to run gs for cropping:', gsCmd);
-      const { stdout: gsOut, stderr: gsErr } = await execAsync(gsCmd, { cwd: TEMP_DIR });
-      console.log('[QWorld] gs stdout:\n', gsOut);
-      console.error('[QWorld] gs stderr:\n', gsErr);
+      console.log("[QWorld] About to run gs for cropping:", gsCmd);
+      const { stdout: gsOut, stderr: gsErr } = await execAsync(gsCmd, {
+        cwd: TEMP_DIR,
+      });
+      console.log("[QWorld] gs stdout:\n", gsOut);
+      console.error("[QWorld] gs stderr:\n", gsErr);
       croppedPdfFilePath = `${TEMP_DIR}/${hash}-cropped.pdf`;
     } else {
-      console.warn(`[QWorld] BoundingBox not found in log for ${hash}.pdf. Skipping cropping.`);
+      console.warn(
+        `[QWorld] BoundingBox not found in log for ${hash}.pdf. Skipping cropping.`,
+      );
     }
 
     // 9. クロップされたPDFをSVGに変換
     const pdf2svgCmd = `pdf2svg ${croppedPdfFilePath} ${svgFilePath}`;
-    console.log('[QWorld] About to run pdf2svg:', pdf2svgCmd);
+    console.log("[QWorld] About to run pdf2svg:", pdf2svgCmd);
     const { stdout: svgOut, stderr: svgErr } = await execAsync(pdf2svgCmd, {
       cwd: TEMP_DIR,
     });
-    console.log('[QWorld] pdf2svg stdout:\n', svgOut);
-    console.error('[QWorld] pdf2svg stderr:\n', svgErr);
+    console.log("[QWorld] pdf2svg stdout:\n", svgOut);
+    console.error("[QWorld] pdf2svg stderr:\n", svgErr);
 
     // 9. SVG の存在チェックと出力ディレクトリ一覧
     const svgExists = fs.existsSync(svgFilePath);
     console.log(`[QWorld] Checking SVG at ${svgFilePath}:`, svgExists);
     try {
       const outFiles = fs.readdirSync(OUTPUT_SVG_DIR);
-      console.log('[QWorld] Contents of OUTPUT_SVG_DIR:', outFiles);
+      console.log("[QWorld] Contents of OUTPUT_SVG_DIR:", outFiles);
     } catch (e) {
-      console.error('[QWorld] Cannot read OUTPUT_SVG_DIR:', OUTPUT_SVG_DIR, e);
+      console.error("[QWorld] Cannot read OUTPUT_SVG_DIR:", OUTPUT_SVG_DIR, e);
     }
-
   } catch (error) {
     // 10. エラー時: コンソール出力＋LaTeXログ全文ダンプ
-    console.error(`[QWorld-Diagram] Error generating diagram for hash ${hash}:`, error);
+    console.error(
+      `[QWorld-Diagram] Error generating diagram for hash ${hash}:`,
+      error,
+    );
     const logPath = path.join(TEMP_DIR, `${hash}.log`);
     if (fs.existsSync(logPath)) {
-      const logContent = await fsp.readFile(logPath, 'utf8');
-      console.error(`--- LaTeX Log (${hash}) START ---\n${logContent}\n--- LaTeX Log (${hash}) END ---`);
+      const logContent = await fsp.readFile(logPath, "utf8");
+      console.error(
+        `--- LaTeX Log (${hash}) START ---\n${logContent}\n--- LaTeX Log (${hash}) END ---`,
+      );
     } else {
       console.error(`[QWorld-Diagram] No LaTeX log found at ${logPath}`);
     }
     throw error;
-
   } finally {
     // 11. 一時ファイルのクリーンアップ
-    const filesToDelete = await fsp.readdir(TEMP_DIR);
-    for (const file of filesToDelete) {
-      if (file.startsWith(hash)) {
-        try {
-          await fsp.unlink(path.join(TEMP_DIR, file));
-        } catch (unlinkError) {
-          if (unlinkError.code !== 'ENOENT') {
-            console.error(`[QWorld-Diagram] Error cleaning up file ${file}:`, unlinkError);
-          }
-        }
-      }
-    }
+    await cleanupTempFiles(hash, TEMP_DIR);
   }
 }
-
-
-
-
-
 
 module.exports = function remarkQWorldDiagram(options) {
   fs.mkdirSync(OUTPUT_SVG_DIR, { recursive: true });
@@ -147,22 +188,30 @@ module.exports = function remarkQWorldDiagram(options) {
   return async (tree) => {
     const generationTasks = [];
 
-    visit(tree, ['code', 'text'], (node) => {
-      if (node.type === 'code' && node.lang === 'qworld') {
-        const escapedNodeValue = node.value.trim().replace(/\\/g, '\\\\');        const latexToCompile = escapedNodeValue;        console.log(`[QWorld-Debug] LaTeX for code block: ${latexToCompile}`);
-        const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
+    visit(tree, ["code", "text"], (node) => {
+      if (node.type === "code" && node.lang === "qworld") {
+        const latexToCompile = node.value.trim();
+        console.log(`[QWorld-Debug] LaTeX for code block: ${latexToCompile}`);
+        const hash = crypto
+          .createHash("md5")
+          .update(latexToCompile)
+          .digest("hex");
         const svgFileName = `${hash}.svg`;
-        const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
-        
-        node.type = 'image';
+        const publicPath = path.posix.join(
+          options.baseUrl || "/",
+          "img/qworld-diagrams",
+          svgFileName,
+        );
+
+        node.type = "image";
         node.url = publicPath;
-        node.alt = 'QWorld Diagram';
+        node.alt = "QWorld Diagram";
         delete node.children;
         delete node.value;
 
         // SVG生成タスクをキューに追加
         generationTasks.push(() => generateDiagram(latexToCompile, hash));
-      } else if (node.type === 'text') {
+      } else if (node.type === "text") {
         const inlineQworldRegex = /\\q\{([\\s\\S]*?)\}/g;
         let match;
         let lastIndex = 0;
@@ -170,27 +219,46 @@ module.exports = function remarkQWorldDiagram(options) {
 
         while ((match = inlineQworldRegex.exec(node.value)) !== null) {
           if (match.index > lastIndex) {
-            newNodes.push({ type: 'text', value: node.value.substring(lastIndex, match.index) });
+            newNodes.push({
+              type: "text",
+              value: node.value.substring(lastIndex, match.index),
+            });
           }
 
-          const latexCode = match[1].trim().replace(/\\/g, '\\\\');
-          const latexToCompile = String.raw`\q{${latexCode}}`;          console.log(`[QWorld-Debug] LaTeX for inline: ${latexToCompile}`);
-          const hash = crypto.createHash('md5').update(latexToCompile).digest('hex');
+          const latexCode = match[1].trim();
+          const latexToCompile = String.raw`\q{${latexCode}}`;
+          console.log(`[QWorld-Debug] LaTeX for inline: ${latexToCompile}`);
+          const hash = crypto
+            .createHash("md5")
+            .update(latexToCompile)
+            .digest("hex");
           const svgFileName = `${hash}.svg`;
-          const publicPath = path.posix.join(options.baseUrl || '/', 'img/qworld-diagrams', svgFileName);
+          const publicPath = path.posix.join(
+            options.baseUrl || "/",
+            "img/qworld-diagrams",
+            svgFileName,
+          );
 
           newNodes.push({
-            type: 'image',
+            type: "image",
             url: publicPath,
-            alt: 'QWorld Diagram',
+            alt: "QWorld Diagram",
           });
 
           generationTasks.push(() => generateDiagram(latexToCompile, hash));
           lastIndex = inlineQworldRegex.lastIndex;
         }
 
+        if (newNodes.length > 0) {
+          node.children = newNodes;
+          node.type = "span";
+        }
+
         if (lastIndex < node.value.length) {
-          newNodes.push({ type: 'text', value: node.value.substring(lastIndex) });
+          newNodes.push({
+            type: "text",
+            value: node.value.substring(lastIndex),
+          });
         }
 
         if (newNodes.length > 0) {

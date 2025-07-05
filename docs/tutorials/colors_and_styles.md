@@ -10,9 +10,9 @@ sidebar_position: 4
 
 ボックスには3種類の色属性を指定できます。
 
--   `color`: ボックスの内部を塗りつぶす色。
--   `frame color`: ボックスの枠線の色。
--   `morphism color`: ボックス内部の射（ワイヤーなど）の色。
+- `color`: ボックスの内部を塗りつぶす色。
+- `frame color`: ボックスの枠線の色。
+- `morphism color`: ボックス内部の射（ワイヤーなど）の色。
 
 ```latex
 \q{
@@ -32,10 +32,10 @@ sidebar_position: 4
 
 ワイヤーの線の種類は `arrowtype` キーで変更できます。これはTikZのスタイルオプションを直接利用します。
 
--   `dotted` (点線)
--   `dashed` (破線)
--   `dash dot` (一点鎖線)
--   `loosely dotted` (間隔の広い点線)
+- `dotted` (点線)
+- `dashed` (破線)
+- `dash dot` (一点鎖線)
+- `loosely dotted` (間隔の広い点線)
 
 ```latex
 \q{
